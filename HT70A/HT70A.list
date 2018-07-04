@@ -2,10 +2,15 @@
 				;1	// PROGRAM	: 3-1.c									2013.1025
 				;2	/* FUNCTION	: LED Scanning Demo Program for 
 				;3					  C-Language Introduction			By Steven*/
-				;4	#include <HT66F70A.h>
-				;5	void Delay100us(unsigned short);					//函式原型宣告
-				;6	void main()
-				;7	{	unsigned char i,j;	
+				;4	#define		SW0		   	_pe0		//PE0
+				;5	#define		SW0C		_pec0		//PEC0
+				;6	#define		SW0PU	 	_pepu0		//PEPU0
+				;7	#include <HT66F70A.h>
+				;8	
+				;9	void Delay100us(unsigned short);
+				;10	void LED(void);
+				;11	void main()
+				;12	{	
 				@code .SECTION 'CODE'
 				include HT66F70A.inc
 0000	1F0B	clr     BP
@@ -15,111 +20,64 @@
 				@start .SECTION 'CODE'
 0002	0F00	mov     a, 0H
 0003	008B	mov     BP, a
-0004	2819	jmp     _main
-				;8		_wdtc=0b10101111;								//關閉看們狗計時器
+0004	2805	jmp     _main
+				;13		_pdc=0x00;
 				_main:
 				_main:
-0019	0FAF	mov     a, AFH
-001A	00BE	mov     WDTC, a
-				;9		_pdc=0x00;										//規劃PC為輸出屬性
-001B	1F1F	clr     PDC
-				;10		_pd=0xFE;										//設定PC初值
-001C	0FFE	mov     a, FEH
-001D	009E	mov     PD, a
-				;11		while(1)
-				;12		{	
-				;13			for(j=0;j<7;j++)	
-001E	5F05	clr     j[0]
-				_L8:
-001F	0F06	mov     a, 6H
-0020	4205	sub     a, j[0]
-0021	380A	snz     C
-0022	2835	jmp     _L11
-0033	5485	inc     j[0]
-0034	281F	jmp     _L8
-0044	5F05	clr     j[0]
-0045	2823	jmp     _L9
-0046	2846	jmp     $
-				;14			{	
-				;15				Delay100us(1000);
-				_L9:
-0023	0FE8	mov     a, E8H
-0024	4083	mov     del, a
-0025	0F03	mov     a, 3H
-0026	4084	mov     del[1], a
-0027	2005	call    _Delay100us
-				;16				_pd=_pd<<1|0x01;						//PG左移並補1至LSB
-0028	071E	mov     a, PD
-0029	4081	mov     rb, a
-002A	5F02	clr     rc
-002B	340A	clr     C
-002C	5A81	rlc     rb
-002D	5A82	rlc     rc
-002E	4701	mov     a, rb
-002F	4080	mov     ra, a
-0030	7000	set     ra.0
-0031	4700	mov     a, ra
-0032	009E	mov     PD, a
-				;17			}
-				;18			do	
-				;19			{	
-				;20				Delay100us(1000); _pd=_pd>>1|0x80;		//PG右移並補1至MSB
-				_L11:
-0035	0FE8	mov     a, E8H
-0036	4083	mov     del, a
-0037	0F03	mov     a, 3H
-0038	4084	mov     del[1], a
-0039	2005	call    _Delay100us
-003A	191E	rra     PD
-003B	0E7F	and     a, 7FH
-003C	4080	mov     ra, a
-003D	7380	set     ra.7
-003E	4700	mov     a, ra
-003F	009E	mov     PD, a
-				;21			}while(_pd!=0b11111110);				
-0040	071E	mov     a, PD
-0041	0AFE	sub     a, FEH
-0042	390A	snz     Z
-0043	2835	jmp     _L11
-				;22		}
-				;23	}	
-				;24	void Delay100us(unsigned short del)					//延遲del*200指令週期
-				;25	{	
-				;26		unsigned short i,j;								//@fSYS=8MH,延遲del*100us
-				;27		for(i=0;i<del;i++)
-				_Delay100us:
-				_Delay100us:
-0005	5F01	clr     rb
-0006	5F02	clr     rc
+0005	1F1F	clr     PDC
+				;14		_wdtc=0b10101111;							//關閉看們狗計時器
+0006	0FAF	mov     a, AFH
+0007	00BE	mov     WDTC, a
+				;15		SW0C=1; SW0PU=1;                      		//規劃SW0接腳為輸入並啟用提升電阻
+0008	3023	set     PEC0
+0009	3021	set     PEPU0
+				;16		while(1)
+				;17		{	
+				;18			if(SW0) _pd=0b01010101;						//延遲 120 mSec; 		            	//判斷彈跳是否結束
 				_L2:
-0007	4701	mov     a, rb
-0008	4203	sub     a, del[0]
-0009	4702	mov     a, rc
-000A	5204	sbc     a, del[1]
-000B	3F0A	sz      CZ
-000C	2818	jmp     _L1
-000D	5F00	clr     ra
-0014	5481	inc     rb
-0015	3D0A	sz      Z
-0016	5482	inc     rc
-0017	2807	jmp     _L2
-				_L1:
-0018	0003	ret
-				;28			for(j=0;j<=25;j++) GCC_NOP();
-				_L5:
-000E	0000	nop
-000F	5480	inc     ra
-0010	4700	mov     a, ra
-0011	0A1A	sub     a, 1AH
-0012	390A	snz     Z
-0013	280E	jmp     _L5
-				;29	}
+000A	3822	snz     PE0
+000B	280F	jmp     _L3
+000C	0F55	mov     a, 55H
+000D	009E	mov     PD, a
+000E	280A	jmp     _L2
+				;19			else _pd=0b11111111;
+				_L3:
+000F	1F9E	set     PD
+0010	280A	jmp     _L2
+0011	2811	jmp     $
+				;20		}
+				;21	}
+				;22	
+				;23	//////////////
+				;24	//時間控制
+				;25	//////////////
+				;26	void Delay100us(unsigned short del)					//延遲del*200指令週期
+				;27	{	
+				;28		unsigned short i,j;								//@fSYS=8MH,延遲del*100us
+				;29		for(i=0;i<del;i++)
+				;30			for(j=0;j<=25;j++) GCC_NOP();
+				;31	}
+				;32	
+				;33	//////////////
+				;34	//LED控制
+				;35	//////////////
+				;36	void LED()
+				;37	{
+				;38		unsigned char i,j;
+				;39		for(j=0;j<7;j++)	
+				;40			{	
+				;41				Delay100us(1000);
+				;42				_pd=_pd<<1|0x01;						//PG左移並補1至LSB
+				;43			}
+				;44			do	
+				;45			{	
+				;46				Delay100us(1000); _pd=_pd>>1|0x80;		//PG右移並補1至MSB
+				;47			}while(_pd!=0b11111110);
+				;48	}
 				data .SECTION 'DATA'
 				__pd DB DUP (?) ; __pd
 				__pdc DB DUP (?) ; __pdc
+				__pepu DB DUP (?) ; __pepu
+				__pe DB DUP (?) ; __pe
+				__pec DB DUP (?) ; __pec
 				__wdtc DB DUP (?) ; __wdtc
-				ra DB DUP (?)
-				rb DB DUP (?)
-				rc DB DUP (?)
-				del DB 2 DUP (?) ; del
-				j DB DUP (?) ; j
