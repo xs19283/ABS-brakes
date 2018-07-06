@@ -10,6 +10,7 @@ void Delay100us(unsigned short);
 void LED(void);
 void main()
 {	
+	int i=0;
 	_pdc=0x00;
 	_wdtc=0b10101111;							//關閉看們狗計時器
 	SW0C=1; SW0PU=1;                      		//規劃SW0接腳為輸入並啟用提升電阻

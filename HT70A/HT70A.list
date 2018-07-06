@@ -21,59 +21,62 @@
 0002	0F00	mov     a, 0H
 0003	008B	mov     BP, a
 0004	2805	jmp     _main
-				;13		_pdc=0x00;
+				;13		int i=0;
+				;14		_pdc=0x00;
 				_main:
 				_main:
 0005	1F1F	clr     PDC
-				;14		_wdtc=0b10101111;							//關閉看們狗計時器
+				;15		_wdtc=0b10101111;							//關閉看們狗計時器
 0006	0FAF	mov     a, AFH
 0007	00BE	mov     WDTC, a
-				;15		SW0C=1; SW0PU=1;                      		//規劃SW0接腳為輸入並啟用提升電阻
+				;16		SW0C=1; SW0PU=1;                      		//規劃SW0接腳為輸入並啟用提升電阻
 0008	3023	set     PEC0
 0009	3021	set     PEPU0
-				;16		while(1)
-				;17		{	
-				;18			if(SW0) _pd=0b01010101;						//延遲 120 mSec; 		            	//判斷彈跳是否結束
+				;17		while(1)
+				;18		{	
+				;19			if(SW0) _pd=0b01010101;						//延遲 120 mSec; 		            	//判斷彈跳是否結束
 				_L2:
 000A	3822	snz     PE0
 000B	280F	jmp     _L3
 000C	0F55	mov     a, 55H
 000D	009E	mov     PD, a
 000E	280A	jmp     _L2
-				;19			else _pd=0b11111111;
+				;20			else _pd=0b11111111;
 				_L3:
 000F	1F9E	set     PD
 0010	280A	jmp     _L2
 0011	2811	jmp     $
-				;20		}
-				;21	}
-				;22	
-				;23	//////////////
-				;24	//時間控制
-				;25	//////////////
-				;26	void Delay100us(unsigned short del)					//延遲del*200指令週期
-				;27	{	
-				;28		unsigned short i,j;								//@fSYS=8MH,延遲del*100us
-				;29		for(i=0;i<del;i++)
-				;30			for(j=0;j<=25;j++) GCC_NOP();
-				;31	}
-				;32	
-				;33	//////////////
-				;34	//LED控制
-				;35	//////////////
-				;36	void LED()
-				;37	{
-				;38		unsigned char i,j;
-				;39		for(j=0;j<7;j++)	
-				;40			{	
-				;41				Delay100us(1000);
-				;42				_pd=_pd<<1|0x01;						//PG左移並補1至LSB
-				;43			}
-				;44			do	
-				;45			{	
-				;46				Delay100us(1000); _pd=_pd>>1|0x80;		//PG右移並補1至MSB
-				;47			}while(_pd!=0b11111110);
-				;48	}
+				;21			i=1;
+				;22			i=2;
+				;23		}
+				;24	}
+				;25	
+				;26	//////////////
+				;27	//時間控制
+				;28	//////////////
+				;29	void Delay100us(unsigned short del)					//延遲del*200指令週期
+				;30	{	
+				;31		unsigned short i,j;								//@fSYS=8MH,延遲del*100us
+				;32		for(i=0;i<del;i++)
+				;33			for(j=0;j<=25;j++) GCC_NOP();
+				;34	}
+				;35	
+				;36	//////////////
+				;37	//LED控制
+				;38	//////////////
+				;39	void LED()
+				;40	{
+				;41		unsigned char i,j;
+				;42		for(j=0;j<7;j++)	
+				;43			{	
+				;44				Delay100us(1000);
+				;45				_pd=_pd<<1|0x01;						//PG左移並補1至LSB
+				;46			}
+				;47			do	
+				;48			{	
+				;49				Delay100us(1000); _pd=_pd>>1|0x80;		//PG右移並補1至MSB
+				;50			}while(_pd!=0b11111110);
+				;51	}
 				data .SECTION 'DATA'
 				__pd DB DUP (?) ; __pd
 				__pdc DB DUP (?) ; __pdc
