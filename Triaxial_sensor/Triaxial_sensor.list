@@ -1,16 +1,42 @@
 				;file D:\IIIT\Documents\HTK_Project\Triaxial_sensor\SourceCode.c
 				;1	#include <HT66F70A.h>
 				;2	
-				;3	#define SDO _pa5	//以盛群為基準
-				;4	#define SDA _pa6	//以盛群為基準
-				;5	#define SCK _pa7
-				;6	
-				;7	#define SDOC _pas5	//以盛群為基準
-				;8	#define SDAC _pas6
-				;9	#define SCKC _pas7
-				;10	
-				;11	void main()
-				;12	{
+				;3	#define	DATA_BUS _pg
+				;4	#define RS  _ph0
+				;5	#define RW  _ph1
+				;6	#define EN  _ph2
+				;7	
+				;8	#define SDO _pa5	//以盛群為基準
+				;9	#define SDA _pa6	//以盛群為基準
+				;10	#define SCK _pa7
+				;11	#define CS  _pb5
+				;12	
+				;13	#define SDOC _pac5	//以盛群為基準
+				;14	#define SDAC _pac6
+				;15	#define SCKC _pac7
+				;16	#define CSC  _pbc5
+				;17	
+				;18	#define SDOPU _papu5	//盛群為基準
+				;19	#define SDAPU _papu6
+				;20	#define SCKPU _papu7
+				;21	#define CSPU  _pbpu5
+				;22	
+				;23	#define PAS2 _pas2	//pas 5 SDO
+				;24	#define PAS3 _pas3	//pas 6 7 SDI SCL
+				;25	#define PBS2 _pbs2	//pbs5 scs
+				;26	
+				;27	void Master(unsigned short); 
+				;28	void Delay100us(short);	
+				;29	void _SPI_CS(unsigned short);
+				;30	void _SPI_SCL(unsigned short);
+				;31	unsigned char ADXL345_SPI_Read(unsigned char);
+				;32	void LCD_Reset(void);
+				;33	void delay_ms(unsigned char);
+				;34	void LCD_Cmd(unsigned char);
+				;35	void LCD_Senddata(unsigned char);
+				;36	
+				;37	void main()
+				;38	{
 				@code .SECTION 'CODE'
 				include HT66F70A.inc
 0000	1F0B	clr     BP
@@ -20,47 +46,393 @@
 				@start .SECTION 'CODE'
 0002	0F00	mov     a, 0H
 0003	008B	mov     BP, a
-0004	2805	jmp     _main
-				;13		_pa5s0=1;
+0004	28A9	jmp     _main
+0005	0000	nop
+0006	0000	nop
+0007	0000	nop
+0008	0000	nop
+				L0009:
+0009	0000	nop
+				L000A:
+000A	0000	nop
+000B	1785	sdz     ACC
+000C	280A	jmp     L000A
+				L000D:
+000D	0000	nop
+000E	1785	sdz     ACC
+000F	280D	jmp     L000D
+0010	5783	sdz     bLevel
+0011	280D	jmp     L000D
+0012	0003	ret
+				;39		volatile unsigned char i;
+				;40		_wdtc = 0xab;//關閉看門狗
 				_main:
 				_main:
-0005	B262	lset    PA5S0
-				;14		_pa5s1=0;
-0007	B6E2	lclr    PA5S1
-				;15		_pa5s2=0;
-0009	B762	lclr    PA5S2
-				;16		_pa5s3=0;
-000B	B7E2	lclr    PA5S3
-				;17		
-				;18		_pa6s0=0;
-000D	B463	lclr    PA6S0
-				;19		_pa6s1=1;
-000F	B0E3	lset    PA6S1
-				;20		_pa6s2=0;
-0011	B563	lclr    PA6S2
-				;21		_pa6s3=0;
-0013	B5E3	lclr    PA6S3
-				;22		
-				;23		_pa7s0=0;
-0015	B663	lclr    PA7S0
-				;24		_pa7s1=1;
-0017	B2E3	lset    PA7S1
-				;25		_pa7s2=0;
-0019	B763	lclr    PA7S2
-				;26		_pa7s3=0;
-001B	B7E3	lclr    PA7S3
-				;27		
-				;28		_pb5s0=1;
-001D	B266	lset    PB5S0
-				;29		_pb5s1=0;
-001F	B6E6	lclr    PB5S1
-				;30		_pb5s2=0;
-0021	B766	lclr    PB5S2
-				;31		_pb5s3=0;
-0023	B7E6	lclr    PB5S3
-0025	2825	jmp     $
-				;32	}
+00A9	0FAB	mov     a, ABH
+00AA	00BE	mov     WDTC, a
+				;41		
+				;42		PAS2=0x10;  //設定各個腳位功能
+00AB	0F10	mov     a, 10H
+00AC	80E2	lmov    PAS2, a
+				;43		PAS3=0x22;  
+00AE	0F22	mov     a, 22H
+00AF	80E3	lmov    PAS3, a
+				;44		PBS2=0x10;  
+00B1	0F10	mov     a, 10H
+00B2	80E6	lmov    PBS2, a
+				;45		
+				;46		_phc0 = 0; _phc1 = 0; _phc2 = 0;
+00B4	342F	clr     PHC0
+00B5	34AF	clr     PHC1
+00B6	352F	clr     PHC2
+				;47		_pgc = 0x00;
+00B7	1F2B	clr     PGC
+				;48		
+				;49		SDOC=0; 	SDAC=1; 	SCKC=0;  //設定I/O
+00B8	3693	clr     PAC5
+00B9	3313	set     PAC6
+00BA	3793	clr     PAC7
+				;50		SDAPU=1;	SCK=0;		CSC=0;
+00BB	3311	set     PAPU6
+00BC	3792	clr     PA7
+00BD	3697	clr     PBC5
+				;51		CS=0;
+00BE	3696	clr     PB5
+				;52		
+				;53		_cp0c = 0x00;	//類比比較器功能關閉
+00BF	1F46	clr     CP0C
+				;54		_cp1c = 0x00;
+00C0	1F47	clr     CP1C
+				;55		
+				;56		LCD_Reset();
+00C1	209E	call    _LCD_Reset
+				;57		delay_ms(5);
+00C2	0F05	mov     a, 5H
+00C3	2013	call    _delay_ms
+				;58		LCD_Cmd(0x80);
+00C4	0F80	mov     a, 80H
+00C5	2093	call    _LCD_Cmd
+				;59		
+				;60		unsigned char datax = ADXL345_SPI_Read(0x32);
+00C6	0F32	mov     a, 32H
+00C7	2045	call    _ADXL345_SPI_Read
+				;61		unsigned char datay = ADXL345_SPI_Read(0x34);
+00C8	0F34	mov     a, 34H
+00C9	2045	call    _ADXL345_SPI_Read
+				;62		datax = ADXL345_SPI_Read(0x32);
+00CA	0F32	mov     a, 32H
+00CB	2045	call    _ADXL345_SPI_Read
+00CC	408A	mov     datax[0], a
+				;63		for(i=0;i<=16;i++) //顯示Logo陣列資料
+00CD	5F09	clr     i[0]
+00CE	28D2	jmp     _L24
+00D1	5489	inc     i[0]
+				_L24:
+00D2	0F10	mov     a, 10H
+00D3	4209	sub     a, i[0]
+00D4	3C0A	sz      C
+00D5	28CF	jmp     _L25
+00D6	28D6	jmp     $
+				;64		{
+				;65			LCD_Senddata(datax);
+				_L25:
+00CF	470A	mov     a, datax[0]
+00D0	2024	call    _LCD_Senddata
+				;66		}
+				;67	}
+				;68	
+				;69	void Master(unsigned short Data)
+				;70	{	unsigned short temp=0b00000001;
+				;71		do
+				;72		{	
+				;73			SDO=Data & temp;						//Set SDO State
+				;74			SCK=1; Delay100us(3); SCK=0; //Generate SCK Clock
+				;75			temp<<=1;									   //Next Bit
+				;76		} while (temp!=0);
+				;77	}
+				;78	
+				;79	void Delay100us(short del)						//延遲del*200指令週期
+				;80	{	short i,j;									//@fSYS=8MH,延遲del*100us
+				;81		for(i=0;i<del;i++)
+				;82			for(j=0;j<=25;j++) GCC_NOP();
+				;83	}	
+				;84	
+				;85	void _SPI_CS(unsigned short isSelect)
+				;86	{
+				;87	    CS=isSelect;
+				__SPI_CS:
+				__SPI_CS:
+0039	4703	mov     a, isSelect[0]
+003A	0E01	and     a, 1H
+003B	4080	mov     ra, a
+003C	5100	swapa   ra
+003D	1885	rl      ACC
+003E	0EE0	and     a, E0H
+003F	4080	mov     ra, a
+0040	3696	clr     PB5
+0041	4700	mov     a, ra
+0042	0596	orm     a, PB
+				;88	    GCC_NOP();
+0043	0000	nop
+0044	0003	ret
+				;89	}
+				;90	
+				;91	void _SPI_SCL(unsigned short bLevel)
+				;92	{
+				;93	    SCK=bLevel;
+				__SPI_SCL:
+				__SPI_SCL:
+002F	4703	mov     a, bLevel[0]
+0030	4080	mov     ra, a
+0031	5B80	rrc     ra
+0032	5F00	clr     ra
+0033	5B80	rrc     ra
+0034	3792	clr     PA7
+0035	4700	mov     a, ra
+0036	0592	orm     a, PA
+				;94	    GCC_NOP();
+0037	0000	nop
+0038	0003	ret
+				;95	}
+				;96	
+				;97	unsigned char ADXL345_SPI_Read(unsigned char Address)
+				;98	{
+				_ADXL345_SPI_Read:
+				_ADXL345_SPI_Read:
+0045	4085	mov     Address[0], a
+				;99	  unsigned char ReadData=0;
+0075	5F07	clr     ReadData[0]
+				;100	  unsigned char tempSDO;
+				;101	  char i;
+				;102	 
+				;103	  _SPI_CS(0);
+0046	5F03	clr     bLevel
+0047	5F04	clr     del
+0048	2039	call    __SPI_CS
+0049	0F08	mov     a, 8H
+004A	4086	mov     data[1], a
+				;104	 
+				;105	  for(i = 7; i >= 0; i-- )
+004B	0F07	mov     a, 7H
+004C	4087	mov     ReadData[0], a
+006A	5587	dec     ReadData[0]
+006B	5786	sdz     data[1]
+006C	284D	jmp     L004D
+				;106	  {
+				;107	    // F-Edge
+				;108	    _SPI_SCL(1);
+				L004D:
+004D	0F01	mov     a, 1H
+004E	4083	mov     bLevel, a
+004F	5F04	clr     del
+0050	202F	call    __SPI_SCL
+				;109	    SDA = 0x1 & ((0x80 | Address) >> i);
+0051	4705	mov     a, Address[0]
+0052	4081	mov     rb, a
+0053	7381	set     rb.7
+0054	5F02	clr     rc
+0055	5407	inca    ReadData[0]
+0056	285C	jmp     L005C
+				L0057:
+0057	340A	clr     C
+0058	7F82	sz      rc.7
+0059	300A	set     C
+005A	5B82	rrc     rc
+005B	5B81	rrc     rb
+				L005C:
+005C	1785	sdz     ACC
+005D	2857	jmp     L0057
+005E	0F01	mov     a, 1H
+005F	4681	andm    a, rb
+0060	5901	rra     rb
+0061	1985	rr      ACC
+0062	0EC0	and     a, C0H
+0063	4081	mov     rb, a
+0064	3712	clr     PA6
+0065	4701	mov     a, rb
+0066	0592	orm     a, PA
+				;110	    _SPI_SCL(0);
+0067	5F03	clr     bLevel
+0068	5F04	clr     del
+0069	202F	call    __SPI_SCL
+				;111	  }
+				;112	 
+				;113	  //===========================
+				;114	  _SPI_SCL(1);
+006D	0F01	mov     a, 1H
+006E	4083	mov     bLevel, a
+006F	5F04	clr     del
+0070	202F	call    __SPI_SCL
+0071	0F08	mov     a, 8H
+0072	4086	mov     data[1], a
+				;115	  //===========================
+				;116	 
+				;117	  for(i = 7; i >= 0; i-- )
+0073	0F07	mov     a, 7H
+0074	4088	mov     ReadData[1], a
+008A	5588	dec     ReadData[1]
+008B	5786	sdz     data[1]
+008C	2876	jmp     L0076
+				;118	  {
+				;119	    // R-Edge
+				;120	    _SPI_SCL(0);
+				L0076:
+0076	5F03	clr     bLevel
+0077	5F04	clr     del
+0078	202F	call    __SPI_SCL
+				;121	    _SPI_SCL(1);
+0079	0F01	mov     a, 1H
+007A	4083	mov     bLevel, a
+007B	5F04	clr     del
+007C	202F	call    __SPI_SCL
+				;122	    tempSDO = SDO; // Read bit
+007D	5F01	clr     rb
+007E	3E92	sz      PA5
+007F	5481	inc     rb
+				;123	 
+				;124	    ReadData |= tempSDO << i;
+0080	5F02	clr     rc
+0081	5408	inca    ReadData[1]
+0082	2886	jmp     L0086
+				L0083:
+0083	340A	clr     C
+0084	5A81	rlc     rb
+0085	5A82	rlc     rc
+				L0086:
+0086	1785	sdz     ACC
+0087	2883	jmp     L0083
+0088	4701	mov     a, rb
+0089	4587	orm     a, ReadData[0]
+				;125	  }
+				;126	 
+				;127	  _SPI_CS(1);
+008D	0F01	mov     a, 1H
+008E	4083	mov     bLevel, a
+008F	5F04	clr     del
+0090	2039	call    __SPI_CS
+				;128	  return ReadData & 0xFF;
+				;129	}
+0091	4707	mov     a, ReadData[0]
+0092	0003	ret
+				;130	//---傳送命令到LCD
+				;131	void LCD_Cmd(unsigned char data)
+				;132	{
+				_LCD_Cmd:
+				_LCD_Cmd:
+0093	4080	mov     ra, a
+0094	4085	mov     data[0], a
+				;133	    DATA_BUS = data;  //命令送到BUS
+0095	4700	mov     a, ra
+0096	00AA	mov     PG, a
+				;134	    RS=0; RW=0; EN=1; //命令到LCD內 
+0097	342E	clr     PH0
+0098	34AE	clr     PH1
+0099	312E	set     PH2
+				;135	    delay_ms(1);
+009A	0F01	mov     a, 1H
+009B	2013	call    _delay_ms
+				;136	    EN=0;           //禁能LCD
+009C	352E	clr     PH2
+009D	0003	ret
+				;137	}
+				;138	void delay_ms(unsigned char del)
+				;139	{	
+				_delay_ms:
+				_delay_ms:
+0013	4084	mov     del[0], a
+				;140		unsigned char i;
+				;141		for(i=0;i<del;i++) GCC_DELAY(2000);		//內建函式，延遲2000指令週期
+0014	5F00	clr     ra
+0015	281F	jmp     L001F
+				L0016:
+0016	0F01	mov     a, 1H
+0017	4083	mov     bLevel, a
+0018	0FF1	mov     a, F1H
+0019	340B	clr     BP0
+001A	348B	clr     BP1
+001B	2009	call    L0009
+001C	340B	clr     BP0
+001D	348B	clr     BP1
+001E	5480	inc     ra
+				L001F:
+001F	4700	mov     a, ra
+0020	4204	sub     a, del[0]
+0021	390A	snz     Z
+0022	2816	jmp     L0016
+0023	0003	ret
+				;142	}
+				;143	//---LCD的啟始程式  
+				;144	void LCD_Reset(void)
+				;145	{
+				;146	    LCD_Cmd(0b00111000);//8bit傳輸,顯示2行,5*7字型
+				_LCD_Reset:
+				_LCD_Reset:
+009E	0F38	mov     a, 38H
+009F	2093	call    _LCD_Cmd
+				;147	                        //bit4:DL=1,8bit傳輸,
+				;148	                        //bit3:N=1,顯示2行
+				;149	                        //bit2:F=0,5*7字型                        
+				;150	    LCD_Cmd(0b00001100);//顯示幕ON,不顯示游標,游標不閃爍
+00A0	0F0C	mov     a, CH
+00A1	2093	call    _LCD_Cmd
+				;151	                        //bit2:D=1,顯示幕ON
+				;152	                        //bit1:C=0,不顯示游標                      
+				;153	    LCD_Cmd(0b00000110);//顯示完游標右移,游標移位禁能 
+00A2	0F06	mov     a, 6H
+00A3	2093	call    _LCD_Cmd
+				;154	                        //bit1:I/D=1,顯示完游標右移
+				;155	                        //bit0:S=0,游標移位禁能                                   
+				;156	    LCD_Cmd(0b00000001); //清除顯示幕
+00A4	0F01	mov     a, 1H
+00A5	2093	call    _LCD_Cmd
+				;157	    LCD_Cmd(0b00000010); //游標回原位 
+00A6	0F02	mov     a, 2H
+00A7	2093	call    _LCD_Cmd
+00A8	0003	ret
+				;158	}
+				;159	//---傳送資料到LCD
+				;160	void LCD_Senddata(unsigned char data)
+				;161	{
+				_LCD_Senddata:
+				_LCD_Senddata:
+0024	4080	mov     ra, a
+0025	4085	mov     data[0], a
+				;162		DATA_BUS = data; //資料送到BUS
+0026	4700	mov     a, ra
+0027	00AA	mov     PG, a
+				;163		RS=1; RW=0; EN=1; //資料到LCD內
+0028	302E	set     PH0
+0029	34AE	clr     PH1
+002A	312E	set     PH2
+				;164		delay_ms(1);
+002B	0F01	mov     a, 1H
+002C	2013	call    _delay_ms
+				;165		EN=0; //禁能LCD
+002D	352E	clr     PH2
+002E	0003	ret
+				;166	}
 				data .SECTION 'DATA'
+				__papu DB DUP (?) ; __papu
+				__pa DB DUP (?) ; __pa
+				__pac DB DUP (?) ; __pac
+				__pb DB DUP (?) ; __pb
+				__pbc DB DUP (?) ; __pbc
+				__pg DB DUP (?) ; __pg
+				__pgc DB DUP (?) ; __pgc
+				__ph DB DUP (?) ; __ph
+				__phc DB DUP (?) ; __phc
+				__wdtc DB DUP (?) ; __wdtc
+				__cp0c DB DUP (?) ; __cp0c
+				__cp1c DB DUP (?) ; __cp1c
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				bLevel DB 2 DUP (?) ; bLevel
+				del DB DUP (?) ; del
+				data DB DUP (?) ; data
+				ReadData DB DUP (?) ; ReadData
+				i DB DUP (?) ; i
+				datax DB DUP (?) ; datax
 				__pas2 DB DUP (?) ; __pas2
 				__pas3 DB DUP (?) ; __pas3
 				__pbs2 DB DUP (?) ; __pbs2
