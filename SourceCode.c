@@ -36,19 +36,17 @@ void LCD_Reset(void);
 void PinSet(void);
 void DataFormat(void);
 void PrintLCD(unsigned char);
+volatile unsigned char datax=0;
 
 void main()
 {
-	volatile unsigned char datax;
-	
 	PinSet();	//腳位設定
+	//DataFormat();	//3軸資料格式設定
 	
 	LCD_Reset();		//LCD重置
 	delay_ms(250);		//延遲20毫秒 				
 	LCD_Cmd(0xc0);  	//LCD第一行顯示
 	delay_ms(250);            
-	
-	DataFormat();	//3軸資料格式設定
 	
 	while(1)
 	{
@@ -75,7 +73,7 @@ void main()
 //////////////////////////////
 void PinSet(void)
 {
-	_wdtc = 0xab;//關閉看門狗
+	_wdtc = 0xa8;//關閉看門狗
 	_cp0c = 0x00;	//類比比較器功能關閉
 	_cp1c = 0x00;
 	_scomen = 0;
@@ -84,18 +82,56 @@ void PinSet(void)
 	_sdis1=0;
 	_simen=1;  
 	_simc0=0x42;
-	_simc2=0x14;
+	_simc2=0x24;
 	
-	PAS2=0x10;  //設定各個腳位功能
-	PAS3=0x22;  
-	PBS2=0x10;
+	//PAS2=0x10;  //設定各個腳位功能
+	//PAS3=0x22;  
+	//PBS2=0x10;
 
 	
 	_ifs4=0;
 	
-	SDOC=0; 	SDAC=1; 	SCKC=0;		CSC=0;//設定I/O
+	_pac5=0; 	_pac6=1; 	_pac7=0;		CSC=0;//設定I/O
 	_phc0 = 0; _phc1 = 0; _phc2 = 0; //設置PH0、PH1、PH2為輸出   
-	SDAPU=1;	SCK=0;		CS=1;		_pgc = 0x00;   
+	SDAPU=1;	SDOPU=1;	SCKPU=1;	CSPU=1;		SCK=0;		CS=1;		_pgc = 0x00;   
+}
+
+
+//////////////////////////////
+///SPI讀取涵式
+//////////////////////////////
+unsigned char ADXL345_SPI_Read(unsigned char Address)
+{
+  unsigned char ReadData=0;
+  unsigned char tempSDO;
+  char i;
+ 
+  _SPI_CS(0);
+  SDO = 0;
+  for(i = 7; i >= 0; i-- )
+  {
+    // F-Edge
+    _SPI_SCL(1);
+    //SDO = 0x0 & ((0x0 | Address) >> i);
+    _SPI_SCL(0);
+  }
+ 
+  //===========================
+  _SPI_SCL(1);
+  //===========================
+ 
+  for(i = 7; i >= 0; i-- )
+  {
+    // R-Edge
+    _SPI_SCL(0);
+    _SPI_SCL(1);
+    tempSDO = SDA; // Read bit
+ 
+    ReadData |= tempSDO << i;
+  }
+ 
+  _SPI_CS(1);
+  return ReadData & 0xFF;
 }
 
 //////////////////////////////
@@ -143,48 +179,6 @@ void _SPI_SCL(unsigned short bLevel)
 {
     SCK=bLevel;
     _nop();
-}
-
-//////////////////////////////
-///SPI讀取涵式
-//////////////////////////////
-unsigned char ADXL345_SPI_Read(unsigned char Address)
-{
-  unsigned char ReadData=0;
-  unsigned char tempSDO;
-  char i;
- 
-  CS=0;
- 
-  for(i = 7; i >= 0; i-- )
-  {
-    // F-Edge
-    SCK=1;
-    _nop();
-    SDO = 0x1 & ((0x80 | Address) >> i);
-    SCK=0;
-    _nop();
-  }
- 
-  //===========================
-  _SPI_SCL(1);
-  //===========================
- 
-  for(i = 7; i >= 0; i-- )
-  {
-    // R-Edge
-    SCK=0;
-    _nop();
-    SCK=1;
-    _nop();
-    tempSDO = SDA; // Read bit
- 
-    ReadData |= tempSDO << i;
-  }
-
-	_trf=0;
-  _SPI_CS(1);
-  return ReadData & 0xFF;
 }
 
 //////////////////////////////
