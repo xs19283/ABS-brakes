@@ -36,7 +36,7 @@ void LCD_Reset(void);
 void PinSet(void);
 void DataFormat(void);
 void PrintLCD(unsigned char);
-volatile unsigned char datax=0, datay=0;
+unsigned char datax=0, datay=0;
 
 void main()
 {
@@ -51,7 +51,7 @@ void main()
 	
 	while(1)
 	{
-		datax = ADXL345_SPI_Read(0x32);
+		datax = ADXL345_SPI_Read(0x2C);
 		Delay100us(100);
 	
 		LCD_Cmd(0x80);  //從第一行第0位置開始顯示   C0為第二行
@@ -60,11 +60,11 @@ void main()
 	  		
 	  	//delay_ms(1250);
 	  	
-	  	datay = ADXL345_SPI_Read(0x34);
+	  	datay = ADXL345_SPI_Read(0x30);
 	  	Delay100us(100);
 	  	LCD_Cmd(0x85);	//從第一行第5位置開始顯示
 	 	delay_ms(150);
-	  	PrintLCD(datax);
+	  	PrintLCD(datay);
 		delay_ms(50);	  		
 	}
 	
@@ -105,17 +105,20 @@ void PinSet(void)
 unsigned char ADXL345_SPI_Read(unsigned char Address)
 {
   unsigned char ReadData=0;
-  unsigned char tempSDO;
+  unsigned char tempSDO=0;
   char i;
  
   _SPI_CS(0);
+  GCC_NOP();
   
   for(i = 7; i >= 0; i-- )
   {
     // F-Edge
     _SPI_SCL(1);
     SDO = 0x1 & ((0x80 | Address) >> i);
+    GCC_NOP();
     _SPI_SCL(0);
+    GCC_NOP();
   }
  
   //===========================
@@ -130,8 +133,9 @@ unsigned char ADXL345_SPI_Read(unsigned char Address)
     tempSDO = SDA; // Read bit
  
     ReadData |= tempSDO << i;
+    
   }
- 
+  GCC_NOP();
   _SPI_CS(1);
   return ReadData & 0xFF;
 }
@@ -172,7 +176,7 @@ void Delay100us(short del)						//延遲del*200指令週期
 void _SPI_CS(unsigned short isSelect)
 {
     CS=isSelect;
-    _nop();
+    GCC_NOP();
 }
 
 //////////////////////////////
@@ -181,7 +185,7 @@ void _SPI_CS(unsigned short isSelect)
 void _SPI_SCL(unsigned short bLevel)
 {
     SCK=bLevel;
-    _nop();
+    GCC_NOP();
 }
 
 //////////////////////////////
@@ -192,13 +196,16 @@ void ADXL345_SPI_Write(unsigned char Address, unsigned char WriteData)
   char i;
  
   _SPI_CS(0);
+  GCC_NOP();
  
   for(i=7; i >= 0; i--)
   {
     // F-Edge
     _SPI_SCL(1);
-    SDO = 0x1 & ((0x7F & Address) >> i);
+    SDO = 0x01 & ((0x7F & Address) >> i);
+    GCC_NOP();
     _SPI_SCL(0);
+    GCC_NOP();
   }
  
   for(i=7; i >= 0; i--)
@@ -206,9 +213,11 @@ void ADXL345_SPI_Write(unsigned char Address, unsigned char WriteData)
     // F-Edge
     _SPI_SCL(1);
     SDO = 0x1 & ((WriteData) >> i);
+    GCC_NOP();
     _SPI_SCL(0);
+    GCC_NOP();
   }
- 
+ GCC_NOP();
   _SPI_CS(1);
 }
 
