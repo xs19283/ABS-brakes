@@ -36,13 +36,13 @@ void LCD_Reset(void);
 void PinSet(void);
 void DataFormat(void);
 void PrintLCD(unsigned char);
-unsigned char datax=0, datay=0;
+volatile unsigned char datax;
 
 void main()
 {
 	PinSet();	//腳位設定
 	delay_ms(2);
-	DataFormat();	//3軸資料格式設定
+	//DataFormat();	//3軸資料格式設定
 	
 	LCD_Reset();		//LCD重置
 	delay_ms(250);		//延遲20毫秒 				
@@ -51,21 +51,12 @@ void main()
 	
 	while(1)
 	{
+		
 		datax = ADXL345_SPI_Read(0x2C);
-		Delay100us(100);
-	
-		LCD_Cmd(0x80);  //從第一行第0位置開始顯示   C0為第二行
-		delay_ms(150);
-	 	PrintLCD(datax);
-	  		
-	  	//delay_ms(1250);
-	  	
-	  	datay = ADXL345_SPI_Read(0x30);
-	  	Delay100us(100);
-	  	LCD_Cmd(0x85);	//從第一行第5位置開始顯示
-	 	delay_ms(150);
-	  	PrintLCD(datay);
-		delay_ms(50);	  		
+		LCD_Cmd(0x80);
+		PrintLCD(datax);
+		
+		_wdtc = 0xa8;	
 	}
 	
 }
@@ -78,24 +69,27 @@ void PinSet(void)
 	_wdtc = 0xa8;//關閉看門狗
 	_cp0c = 0x00;	//類比比較器功能關閉
 	_cp1c = 0x00;
+	
 	_scomen = 0;
-	_smod = 0xe0;//4MHz
+	//_smod = 0xe0;//4MHz
 	_sdis0=0;
 	_sdis1=0;
+	_simc0=0x00;
+	_simc2=0x0C;
 	_simen=1;  
-	_simc0=0x42;
-	_simc2=0x24;
 	
-	//PAS2=0x10;  //設定各個腳位功能
-	//PAS3=0x22;  
-	//PBS2=0x10;
+	_adoff=1;
+	PAS2=0x10;  //設定各個腳位功能
+	PAS3=0x22;  
+	PBS2=0x10;
 
 	
 	_ifs4=0;
 	
-	_pac5=0; 	_pac6=1; 	_pac7=0;		CSC=0;//設定I/O
-	_phc0 = 0; _phc1 = 0; _phc2 = 0; //設置PH0、PH1、PH2為輸出   
-	SDAPU=1;	SDOPU=1;	SCKPU=1;	CSPU=1;		SCK=0;		CS=1;		_pgc = 0x00;   
+	SDOC=0; 	SDAC=1; 	SCKC=0;		CSC=0;		//設定I/O
+	_phc0 = 0; 	_phc1 = 0;	_phc2 = 0; 	_pgc = 0x00;   //設置PH0、PH1、PH2為輸出   
+	SDAPU=1;	SDOPU=1;	SCKPU=1;	CSPU=1;				
+	SCK=1;		CS=1;		//數據初始
 }
 
 
@@ -104,40 +98,19 @@ void PinSet(void)
 //////////////////////////////
 unsigned char ADXL345_SPI_Read(unsigned char Address)
 {
-  unsigned char ReadData=0;
-  unsigned char tempSDO=0;
-  char i;
- 
-  _SPI_CS(0);
-  GCC_NOP();
-  
-  for(i = 7; i >= 0; i-- )
-  {
-    // F-Edge
-    _SPI_SCL(1);
-    SDO = 0x1 & ((0x80 | Address) >> i);
-    GCC_NOP();
-    _SPI_SCL(0);
-    GCC_NOP();
+  unsigned char TempSend;
+  unsigned char TempRead;
+  do{
+  	_wcol=0;
+  	TempSend = Address|0x80;
+  	_simd = TempSend;
+  }while(_wcol == 1);
+  while(_trf == 0){
+  	_wdtc = 0xa8;
   }
- 
-  //===========================
-  _SPI_SCL(1);
-  //===========================
- 
-  for(i = 7; i >= 0; i-- )
-  {
-    // R-Edge
-    _SPI_SCL(0);
-    _SPI_SCL(1);
-    tempSDO = SDA; // Read bit
- 
-    ReadData |= tempSDO << i;
-    
-  }
-  GCC_NOP();
-  _SPI_CS(1);
-  return ReadData & 0xFF;
+  _trf = 0;
+  TempRead = _simd;
+  return TempRead;
 }
 
 //////////////////////////////
@@ -176,7 +149,6 @@ void Delay100us(short del)						//延遲del*200指令週期
 void _SPI_CS(unsigned short isSelect)
 {
     CS=isSelect;
-    GCC_NOP();
 }
 
 //////////////////////////////
@@ -185,7 +157,6 @@ void _SPI_CS(unsigned short isSelect)
 void _SPI_SCL(unsigned short bLevel)
 {
     SCK=bLevel;
-    GCC_NOP();
 }
 
 //////////////////////////////
@@ -196,16 +167,13 @@ void ADXL345_SPI_Write(unsigned char Address, unsigned char WriteData)
   char i;
  
   _SPI_CS(0);
-  GCC_NOP();
  
   for(i=7; i >= 0; i--)
   {
     // F-Edge
     _SPI_SCL(1);
-    SDO = 0x01 & ((0x7F & Address) >> i);
-    GCC_NOP();
+    SDO = 0x1 & ((0x7F & Address) >> i);
     _SPI_SCL(0);
-    GCC_NOP();
   }
  
   for(i=7; i >= 0; i--)
@@ -213,11 +181,9 @@ void ADXL345_SPI_Write(unsigned char Address, unsigned char WriteData)
     // F-Edge
     _SPI_SCL(1);
     SDO = 0x1 & ((WriteData) >> i);
-    GCC_NOP();
     _SPI_SCL(0);
-    GCC_NOP();
   }
- GCC_NOP();
+ 
   _SPI_CS(1);
 }
 
