@@ -129,9 +129,9 @@ void DataFormat(void)
 void PrintLCD(unsigned char data)
 {
 	
-	LCD_Senddata((data/100)%10+0x30); 
+	LCD_Senddata((data/1000)%10+0x30); 
+	LCD_Senddata((data/100)%10+0x30);
 	LCD_Senddata((data/10)%10+0x30);
-	LCD_Senddata((data/1)%10+0x30);
 }
 
 //////////////////////////////
@@ -164,27 +164,32 @@ void _SPI_SCL(unsigned short bLevel)
 //////////////////////////////
 void ADXL345_SPI_Write(unsigned char Address, unsigned char WriteData)
 {
-  char i;
- 
-  _SPI_CS(0);
- 
-  for(i=7; i >= 0; i--)
-  {
-    // F-Edge
-    _SPI_SCL(1);
-    SDO = 0x1 & ((0x7F & Address) >> i);
-    _SPI_SCL(0);
-  }
- 
-  for(i=7; i >= 0; i--)
-  {
-    // F-Edge
-    _SPI_SCL(1);
-    SDO = 0x1 & ((WriteData) >> i);
-    _SPI_SCL(0);
-  }
- 
-  _SPI_CS(1);
+  	unsigned char AddressSend;
+	unsigned char WriteDataSend;
+	
+	do
+	{
+		_wcol=0;
+		AddressSend = Address & 0x7F;
+		_simd = AddressSend;
+	}while(_wcol == 1);
+	while(_trf == 0)
+	{
+		_wdtc = 0xa8;
+	}
+	_trf = 0;
+
+	do
+	{
+		_wcol=0;
+  		WriteDataSend = WriteData;
+  		_simd = WriteDataSend;
+	}while(_wcol == 1);
+	while(_trf == 0)
+	{
+  		_wdtc = 0xa8;
+	}
+	_trf = 0;
 }
 
 //---∂«∞e©R•O®ÏLCD
