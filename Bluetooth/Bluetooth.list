@@ -1,0 +1,580 @@
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\Bluetooth.c
+				;1	#include "HT66F70A.h"
+				;2	#include "Interrupt.h"
+				;3	#include "TM.h"
+				;4	#include "UART.h"
+				;5	#include "String.h"
+				;6	 
+				;7	 
+				;8	//				;9	extern char buff[num];
+				;10	extern char Buff[32];
+				;11	extern unsigned int count;
+				;12	 
+				;13	//				;14	void delay1s(void);
+				;15	 
+				;16	 
+				;17	//				;18	void main()
+				;19	{
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	2818	jmp     begin_startup_value
+				startupend3:
+				@start .SECTION 'CODE'
+0052	0F00	mov     a, 0H
+0053	008B	mov     BP, a
+0054	28A8	jmp     _main
+0055	1483	inc     MP1L
+				L0056:
+0056	3F84	sz      MP1H.7
+0057	285A	jmp     L005A
+0058	0702	mov     a, [02H]
+0059	0003	ret
+				L005A:
+005A	1B04	rrca    MP1H
+005B	0E3F	and     a, 3FH
+005C	0089	mov     TBHP, a
+005D	1B03	rrca    MP1L
+005E	0087	mov     TBLP, a
+005F	1D05	tabrd   ACC
+0060	3C0A	sz      C
+0061	0708	mov     a, TBLH
+0062	0003	ret
+				;20	    //TO DO
+				;21	    _wdtc = 0xab;//				_main:
+				_main:
+00A8	0FAB	mov     a, ABH
+00A9	00BE	mov     WDTC, a
+				;22	    unsigned char key;
+				;23	    UART_INIT();
+00AA	20A6	call    _UART_INIT
+				;24	    while(1){
+				;25	    Send("85");
+				_L3:
+00AB	0F22	mov     a, 22H
+00AC	4086	mov     buf, a
+00AD	0F80	mov     a, 80H
+00AE	4087	mov     buf[1], a
+00AF	2084	call    _Send
+00B0	28AB	jmp     _L3
+00B1	28B1	jmp     $
+				startup_value:
+				@ROMDATA_BASE .SECTION 'CODE'
+00B2	0024	jmp     L0024
+00B3	0088	mov     TBLH, a
+				;26	    delay1s();
+				;27	    }
+				;28	    /*
+				;29	    Receive();
+				;30	    Send_Array();
+				;31	    Receive_if(Buff);
+				;32	    //Send_num(8,Buff);
+				;33	    Send(Buff);	
+				;34	    */
+				;35	}
+				;36	 
+				;37	void delay1s(void)   //				;38	{
+				;39	    unsigned char a,b,c,n;
+				;40	    for(c=205;c>0;c--)
+				;41	        for(b=171;b>0;b--)
+				;42	            for(a=8;a>0;a--);
+				;43	    for(n=1;n>0;n--);
+				;44	}
+				;45		
+				;46	 
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\Interrupt.h
+				;1	#ifndef _INTERRUPT_H_
+				;2	#define _INTERRUPT_H_
+				;3	#endif
+				;4	 
+				;5	#define ISR_TMR0//				;6	 
+				;7	void __attribute((interrupt(0x14))) ISR_tmr0_tmr2(void)//TM0				;8	{
+				_ISR_tmr0_tmr2:
+				_ISR_tmr0_tmr2:
+0002	4083	mov     r214, a
+0003	070A	mov     a, STATUS
+0004	40BC	mov     r314, a
+				@ISR_tmr0_tmr2_code .SECTION 'CODE'
+0014	4082	mov     r114, a
+0015	070B	mov     a, BP
+0016	1F0B	clr     BP
+0017	2802	jmp     _ISR_tmr0_tmr2
+				;9		//				;10		#ifdef ISR_TMR0
+				;11		extern volatile unsigned int flag;
+				;12		_emi = 0;
+0005	3430	clr     EMI
+				;13		_t0af = 0;
+0006	36B4	clr     T0AF
+				;14		flag = 1;
+0007	0F01	mov     a, 1H
+0008	408A	mov     flag[0], a
+0009	5F0B	clr     flag[1]
+				;15		_emi = 1;
+000A	3030	set     EMI
+000B	4703	mov     a, r214
+000C	008B	mov     BP, a
+000D	473C	mov     a, r314
+000E	008A	mov     STATUS, a
+000F	4702	mov     a, r114
+0010	0004	reti
+0011	3538	clr     T5PE
+0012	0000	nop
+0013	0000	nop
+				;16		//				;17		#else
+				;18		_emi = 0;
+				;19		_t2af = 0;
+				;20		_emi = 1;
+				;21		#endif
+				;22		
+				;23	}
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\startup1_l.asm
+				;1	;;--------------------------------------------------------------;;
+				;2	;;    This file is part of the Holtek C Compiler V3 package     ;;
+				;3	;;    For the initialization of static linkage variables        ;;
+				;4	;;    Copyright (C) 2017 Holtek Semiconductor Inc.              ;;
+				;5	;;    Version: 1.07 (Above IDE3000 V7.94)                       ;;
+				;6	;;    Date:    2017/03/06                                        ;;
+				;7	;;--------------------------------------------------------------;;
+				;8	
+				;9	acc equ [05h]
+				;10	tblp equ [07h]
+				;11	tblh equ [08h]
+				;12	;;tbhp equ [09h] 
+				;13	r0 equ [00h]
+				;14	mp0 equ [01h]
+				;15	r1 equ [02h]
+				;16	mp1l equ [03h]
+				;17	mp1h equ [04h]
+				;18	z equ [0ah].2
+				;19	c equ [0ah].0
+				;20	
+				;21	ifndef tbhp
+				;22	tbhp equ [09h]
+				;23	endif
+				;24	 
+				;25	extern startup_value_1:near
+				;26	
+				;27	@start .section 'code'
+				;28	begin_startup_value:
+				;29	  mov a,low (offset startup_value_1) 
+				begin_startup_value:
+				@start .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+				@dummy20 .SECTION 'CODE'
+0018	0FB1	mov     a, B1H
+				;30	  mov tblp,a
+0019	0087	mov     TBLP, a
+				;31	  mov a,high (offset startup_value_1) 
+001A	0F00	mov     a, 0H
+				;32	  mov tbhp,a
+001B	0089	mov     TBHP, a
+				;33	next_table:
+				;34	  ;CLR WDT
+				;35	  inc tblp
+				next_table:
+001C	1487	inc     TBLP
+				;36	  sz z
+001D	3D0A	sz      Z
+				;37	  inc tbhp
+001E	1489	inc     TBHP
+				;38	ifdef USE_TABRDC
+				;39	  tabrdc mp0
+				;40	else
+				;41	  tabrd mp0
+001F	1D01	tabrd   MP0
+				;42	endif
+				;43	  sz mp0
+0020	1081	sz      MP0
+				;44	  jmp read_data
+0021	2823	jmp     read_data
+				;45	  jmp startupend1
+0022	2838	jmp     startupend1
+				;46	read_data:
+				;47	  inc tblp
+				read_data:
+0023	1487	inc     TBLP
+				;48	  sz z
+				L0024:
+0024	3D0A	sz      Z
+				;49	  inc tbhp
+0025	1489	inc     TBHP
+				;50	ifdef USE_TABRDC
+				;51	  tabrdc mp1l
+				;52	else
+				;53	  tabrd mp1l
+0026	1D03	tabrd   MP1L
+				;54	endif
+				;55	  mov a,tblh
+0027	0708	mov     a, TBLH
+				;56	  mov mp1h,a
+0028	0084	mov     MP1H, a
+				;57	next_data:
+				;58	  inc tblp
+				next_data:
+0029	1487	inc     TBLP
+				;59	  sz z
+002A	3D0A	sz      Z
+				;60	  inc tbhp
+002B	1489	inc     TBHP
+				;61	ifdef USE_TABRDC
+				;62	  tabrdc acc
+				;63	else
+				;64	  tabrd acc
+002C	1D05	tabrd   ACC
+				;65	endif
+				;66	  mov r1,a
+002D	0082	mov     [02H], a
+				;67	  sdz mp0
+002E	1781	sdz     MP0
+				;68	  jmp $+2
+002F	2831	jmp     L0031
+				;69	  jmp next_table
+0030	281C	jmp     next_table
+				;70	  inc mp1l
+				L0031:
+0031	1483	inc     MP1L
+				;71	  mov a,tblh
+0032	0708	mov     a, TBLH
+				;72	  mov r1,a
+0033	0082	mov     [02H], a
+				;73	  inc mp1l
+0034	1483	inc     MP1L
+				;74	  sdz mp0
+0035	1781	sdz     MP0
+				;75	  jmp next_data
+0036	2829	jmp     next_data
+				;76	  jmp next_table
+0037	281C	jmp     next_table
+				;77	
+				;78	;end_startup_value:
+				;79	
+				;80	startupend1:
+				;81	ifndef Disable_Bit_Initial
+				;82		MOV A,high  bitdatasec1_start
+				startupend1:
+0038	0F00	mov     a, 0H
+				;83		MOV mp1h,a
+0039	0084	mov     MP1H, a
+				;84		MOV A,offset bitdatasec1_end
+003A	0F80	mov     a, 80H
+				;85		mov mp1l,A
+003B	0083	mov     MP1L, a
+				;86		dec mp1l
+003C	1583	dec     MP1L
+				;87		clr z
+003D	350A	clr     Z
+				;88		sub a,offset bitdatasec1_start
+003E	0A80	sub     a, 80H
+				;89		sz z
+003F	3D0A	sz      Z
+				;90		jmp startupend2
+0040	2845	jmp     startupend2
+				;91	L0005:
+				;92		set r1
+				L0005:
+0041	1F82	set     [02H]
+				;93		dec mp1l
+0042	1583	dec     MP1L
+				;94		sdz  acc
+0043	1785	sdz     ACC
+				;95		jmp L0005
+0044	2841	jmp     L0005
+				;96	
+				;97	startupend2:
+				;98		MOV A,high  bitdatasec0_start
+				startupend2:
+0045	0F00	mov     a, 0H
+				;99		MOV mp1h,a
+0046	0084	mov     MP1H, a
+				;100		MOV A,offset bitdatasec0_end
+0047	0F80	mov     a, 80H
+				;101		mov mp1l,A
+0048	0083	mov     MP1L, a
+				;102		dec mp1l
+0049	1583	dec     MP1L
+				;103		clr z
+004A	350A	clr     Z
+				;104		sub a,offset bitdatasec0_start
+004B	0A80	sub     a, 80H
+				;105		sz  z
+004C	3D0A	sz      Z
+				;106		jmp startupend3
+004D	2852	jmp     startupend3
+				;107	L0006:
+				;108		clr r1
+				L0006:
+004E	1F02	clr     [02H]
+				;109		dec mp1l
+004F	1583	dec     MP1L
+				;110		sdz  acc
+0050	1785	sdz     ACC
+				;111		jmp L0006
+0051	284E	jmp     L0006
+				;112	startupend3:
+				;113	endif		
+				;114	   
+				;115	@ROMDATA_BASE .SECTION com_l 'CODE'  
+				;116	startup_value:
+				;117	;;linker range the initial value table here
+				;118	
+				;119	@BITDATASEC1 .SECTION com_l 'DATA'  
+				;120	bitdatasec1_start:
+				;121	
+				;122	@BITDATASEC1 .SECTION com_e 'DATA'  
+				;123	bitdatasec1_end:
+				;124	
+				;125	@BITDATASEC .SECTION com_l 'DATA'  
+				;126	bitdatasec0_start:
+				;127	
+				;128	@BITDATASEC .SECTION com_e 'DATA'  
+				;129	bitdatasec0_end:
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\UART.c
+				;1	#include "UART.h"
+				;2	#include "HT66F70A.h"
+				;3	#include "TM.h"
+				;4	#include "String.h"
+				;5	 
+				;6	//				;7	volatile unsigned int flag = 0;
+				;8	char buff[num];
+				;9	char Buff[32] = "\0";
+				;10	unsigned int count = 0;
+				;11	 
+				;12	 
+				;13	void UART_INIT(void)
+				;14	{
+				;15	  TM0_INIT();      
+				_UART_INIT:
+				_UART_INIT:
+00A6	2093	call    _TM0_INIT
+00A7	0003	ret
+				;16	}
+				;17	 
+				;18	void Waitflag(void)
+				;19	{
+				;20		while (!flag);
+				_L4:
+				_Waitflag:
+				_Waitflag:
+0063	470A	mov     a, flag[0]
+0064	450B	or      a, flag[1]
+0065	3D0A	sz      Z
+0066	2863	jmp     _L4
+				;21		flag=0;//0067	5F0A	clr     flag[0]
+0068	5F0B	clr     flag[1]
+0069	0003	ret
+				;22	}
+				;23	 
+				;24	 
+				;25	void WByte(unsigned char input)
+				;26	{
+				_WByte:
+				_WByte:
+006A	4084	mov     input[0], a
+				;27	 
+				;28	    unsigned char i=8;
+				;29	    TXD=0;
+006B	351A	clr     PC2
+				;30	    _t0on=1; //006C	31DE	set     T0ON
+				;31	    Waitflag();
+006D	2063	call    _L4
+				;32	    while(i--)
+006E	0F09	mov     a, 9H
+006F	4085	mov     input[1], a
+				L0070:
+0070	5785	sdz     input[1]
+0071	2873	jmp     L0073
+0072	2880	jmp     L0080
+				;33	    {
+				;34	        TXD=input & 0x01;         
+				L0073:
+0073	4704	mov     a, input[0]
+0074	0E01	and     a, 1H
+0075	4081	mov     rb, a
+0076	5F00	clr     ra
+0077	5081	sz      rb
+0078	7100	set     ra.2
+0079	351A	clr     PC2
+007A	4700	mov     a, ra
+007B	059A	orm     a, PC
+				;35	        input >>= 1;
+007C	340A	clr     C
+007D	5B84	rrc     input[0]
+				;36	        Waitflag();
+007E	2063	call    _L4
+007F	2870	jmp     L0070
+				;37	    }
+				;38	    TXD=1;
+				L0080:
+0080	311A	set     PC2
+				;39	    Waitflag();
+0081	2063	call    _L4
+				;40	    _t0on = 0;
+0082	35DE	clr     T0ON
+0083	0003	ret
+				;41	        
+				;42	}
+				;43	 
+				;44	void Send(char *buf)
+				;45	{
+				;46		while(*buf != '\0')
+				_Send:
+				_Send:
+0084	288A	jmp     _L11
+				_L11:
+008A	4706	mov     a, buf[0]
+008B	0083	mov     MP1L, a
+008C	4707	mov     a, buf[1]
+008D	0084	mov     MP1H, a
+008E	2056	call    L0056
+008F	4080	mov     ra, a
+0090	5080	sz      ra
+0091	2885	jmp     _L12
+0092	0003	ret
+				;47		{
+				;48			WByte(*buf);
+				_L12:
+0085	4700	mov     a, ra
+0086	206A	call    _WByte
+				;49			buf++;
+0087	5486	inc     buf[0]
+0088	3D0A	sz      Z
+0089	5487	inc     buf[1]
+				;50		}
+				;51	}
+				;52	 
+				;53	void Send_num(unsigned int s,char *buf)
+				;54	{
+				;55		while(s--)
+				;56		{
+				;57			WByte(*buf);
+				;58			buf++;
+				;59		}
+				;60	}
+				;61	 
+				;62		
+				;63	void Send_Array(void)
+				;64	{
+				;65		unsigned int i;
+				;66		for(i = 0;i < num;i++)
+				;67	    WByte(buff[i]);		
+				;68	}
+				;69	 
+				;70	unsigned char RByte(void)
+				;71	{
+				;72	    unsigned char receive;
+				;73	    unsigned char i=8;
+				;74	    while(RXD);
+				;75	    _t0on=1;        //				;76	    Waitflag();
+				;77	    while(i--)
+				;78	    {
+				;79	        receive >>= 1;
+				;80	        if(RXD)
+				;81	        receive |= 0x80;
+				;82	        Waitflag();
+				;83	    }
+				;84	    _t0on = 0;
+				;85	    return receive;
+				;86	}
+				;87	 
+				;88	void Receive(void)
+				;89	{
+				;90	    for(count = 0;count < num;count++)
+				;91	    {		
+				;92		    
+				;93		    buff[count] = RByte();
+				;94		}
+				;95	}
+				;96	 
+				;97	void Receive_num(unsigned int s,char *buf)
+				;98	{
+				;99		while(s--)
+				;100		{
+				;101		*buf = RByte();
+				;102		buf++;
+				;103		}
+				;104	}
+				;105	 
+				;106	void Receive_if(char *buf)
+				;107	{
+				;108		char get;
+				;109		while(1)
+				;110		{
+				;111			get = RByte();
+				;112			if(get == '\n')
+				;113			break;
+				;114			else
+				;115			{
+				;116		    *buf = get;
+				;117		    buf++;
+				;118			}
+				;119		}
+				;120	}
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\TM.c
+				;1	#include "HT66F70A.h"
+				;2	#include "TM.h"
+				;3	 
+				;4	//				;5	void TM0_INIT(void)
+				;6	{
+				;7		//TXD RXD				;8		_pcc2 = 0;
+				_TM0_INIT:
+				_TM0_INIT:
+0093	351B	clr     PCC2
+				;9		_pcc3 = 1;
+0094	319B	set     PCC3
+				;10		_pcpu3 = 1;
+0095	3199	set     PCPU3
+				;11		_pcpu2 = 1;
+0096	3119	set     PCPU2
+				;12		
+				;13	    _tm0c0=0x10;//0097	0F10	mov     a, 10H
+0098	00DE	mov     TM0C0, a
+				;14	    _tm0c1=0xc1;//0099	0FC1	mov     a, C1H
+009A	00DF	mov     TM0C1, a
+				;15	    _tm0al=0x41;//buad rate 9600
+009B	0F41	mov     a, 41H
+009C	00E2	mov     TM0AL, a
+				;16	    _tm0ah=0x03; 
+009D	0F03	mov     a, 3H
+009E	00E3	mov     TM0AH, a
+				;17	 
+				;18	       
+				;19	    _t0ae = 1;
+009F	30B4	set     T0AE
+				;20	    _t0af = 0;
+00A0	36B4	clr     T0AF
+				;21	    _t0on = 0;
+00A1	35DE	clr     T0ON
+				;22	    _emi = 1;
+00A2	3030	set     EMI
+				;23	    _mf0e = 1;
+00A3	30B1	set     MF0E
+				;24	    _mf0f = 0;
+00A4	36B1	clr     MF0F
+00A5	0003	ret
+				;25		}
+				;26	 
+				;27	 
+				data .SECTION 'DATA'
+				__pcpu DB DUP (?) ; __pcpu
+				__pc DB DUP (?) ; __pc
+				__pcc DB DUP (?) ; __pcc
+				__intc0 DB DUP (?) ; __intc0
+				__intc1 DB DUP (?) ; __intc1
+				__mfi0 DB DUP (?) ; __mfi0
+				__wdtc DB DUP (?) ; __wdtc
+				__tm0c0 DB DUP (?) ; __tm0c0
+				__tm0c1 DB DUP (?) ; __tm0c1
+				__tm0al DB DUP (?) ; __tm0al
+				__tm0ah DB DUP (?) ; __tm0ah
+				ra DB DUP (?)
+				rb DB DUP (?)
+				r114 DB DUP (?)
+				r214 DB DUP (?)
+				input DB DUP (?) ; input
+				buf DB DUP (?) ; buf
+				count DB 2 DUP (?) ; count
+				flag DB 2 DUP (?) ; flag
+				Buff DB DUP (?) ; Buff
+				buff DB DUP (?) ; buff
+				r314 DB DUP (?)
