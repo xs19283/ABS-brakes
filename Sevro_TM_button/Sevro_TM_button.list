@@ -1,0 +1,1133 @@
+				;file D:\Users\IIIT\Desktop\Sevro_TM_button\Sevro_TM_button.c
+				;1	#include "HT66F70A.h"
+				;2	#include "Interrupt.h"
+				;3	#include "TM.h"
+				;4	#include "UART.h"
+				;5	#include "String.h"
+				;6	
+				;7	typedef	unsigned char	u8;
+				;8	typedef	char			s8;
+				;9	typedef	unsigned short	u16;
+				;10	typedef	short			s16;
+				;11	typedef	unsigned long	u32;
+				;12	typedef	long			s32;
+				;13	char *AxisX="";
+				@ROMDATA_BASE .SECTION 'CODE'
+01EC	8004	dc	08004H
+				;14	char *Head;
+				;15	
+				;16	char *l;
+				;17	
+				;18	
+				;19	//				;20	extern char buff[num];
+				;21	extern char Buff[32];
+				;22	extern unsigned int count;
+				;23	
+				;24	#define LED_Port  _pg								
+				;25	#define LED_PortC _pgc
+				;26	#define led _pb6
+				;27	#define ledc _pbc6
+				;28	#define led2 _pb7
+				;29	#define ledc2 _pbc7
+				;30	
+				;31	#define  SW_P0			_pe0
+				;32	#define	 SW_P1 		    _pe1
+				;33	#define  SW_P0C			_pec0
+				;34	#define	 SW_P1C			_pec1
+				;35	#define  SW_P0PU		_pepu0
+				;36	#define	 SW_P1PU		_pepu1		
+				;37	
+				;38	u8 SEC,R1sec,AD50ms;
+				;39	s16 temp,Index,auto1;
+				;40	
+				;41	//				;42	void delay1s(void);
+				;43	void TM_Set();  	  //				;44	void Interrupt_Set(); //				;45	void Moto_Set();	  //				;46	void Moto_C(u8 angle);//				;47	void AD_Set();		  //AD				;48	void Delay100us(u16);
+				;49	void delay_ms(unsigned char);
+				;50	
+				;51	void main()
+				;52	{	
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	2878	jmp     begin_startup_value
+0002	0000	nop
+0003	0000	nop
+				startupend3:
+				@start .SECTION 'CODE'
+00B2	0F00	mov     a, 0H
+00B3	008B	mov     BP, a
+00B4	29B2	jmp     _main
+00B5	0000	nop
+00B6	0000	nop
+00B7	0000	nop
+00B8	0000	nop
+				L00B9:
+00B9	0000	nop
+				L00BA:
+00BA	0000	nop
+00BB	1785	sdz     ACC
+00BC	28BA	jmp     L00BA
+				L00BD:
+00BD	0000	nop
+00BE	1785	sdz     ACC
+00BF	28BD	jmp     L00BD
+00C0	578E	sdz     input
+00C1	28BD	jmp     L00BD
+00C2	0003	ret
+				;53		_wdtc = 0xab; 
+				_main:
+				_main:
+01B2	0FAB	mov     a, ABH
+01B3	00BE	mov     WDTC, a
+				;54		ledc=0; ledc2=0;
+01B4	3717	clr     PBC6
+01B5	3797	clr     PBC7
+				;55		UART_INIT();
+01B6	2032	call    _UART_INIT
+				;56		LED_PortC=0;
+01B7	1F2B	clr     PGC
+				;57		TM_Set();
+01B8	2189	call    _TM_Set
+				;58		Interrupt_Set();
+01B9	217C	call    _Interrupt_Set
+				;59		Moto_Set();
+01BA	216E	call    _Moto_Set
+				;60		AD_Set();
+01BB	2163	call    _AD_Set
+				;61		_emi=1;								//01BC	3030	set     EMI
+				;62		Moto_C(107);
+01BD	0F6B	mov     a, 6BH
+01BE	211E	call    _Moto_C
+				;63		auto1=1;
+01BF	0F01	mov     a, 1H
+01C0	40BB	mov     auto1[0], a
+01C1	5F3C	clr     auto1[1]
+				;64		Head = 85;
+01C2	0F55	mov     a, 55H
+01C3	40C6	mov     Head[0], a
+01C4	5F47	clr     Head[1]
+				;65		while(1)
+				;66		{
+				;67			Send(&Head);
+				_L30:
+01C5	0FC6	mov     a, C6H
+01C6	4090	mov     buf, a
+01C7	0F00	mov     a, 0H
+01C8	4091	mov     buf[1], a
+01C9	20FC	call    _Send
+				;68			Send(l);
+01CA	4742	mov     a, l[0]
+01CB	4090	mov     buf, a
+01CC	4743	mov     a, l[1]
+01CD	4091	mov     buf[1], a
+01CE	20FC	call    _Send
+				;69			if(auto1==0){
+01CF	473B	mov     a, auto1[0]
+01D0	453C	or      a, auto1[1]
+01D1	390A	snz     Z
+01D2	29DB	jmp     _L27
+				;70				Moto_C(107);
+01D3	0F6B	mov     a, 6BH
+01D4	211E	call    _Moto_C
+				;71				delay_ms(100);
+01D5	0F64	mov     a, 64H
+01D6	20C3	call    _delay_ms
+				;72				Moto_C(135);
+01D7	0F87	mov     a, 87H
+01D8	211E	call    _Moto_C
+				;73				delay_ms(100);
+01D9	0F64	mov     a, 64H
+01DA	20C3	call    _delay_ms
+				;74			}
+				;75			if(!SW_P0){
+				_L27:
+01DB	3C22	sz      PE0
+01DC	29E2	jmp     _L28
+				;76				auto1=1;
+01DD	0F01	mov     a, 1H
+01DE	40BB	mov     auto1[0], a
+01DF	5F3C	clr     auto1[1]
+				;77				Moto_C(107);
+01E0	0F6B	mov     a, 6BH
+01E1	211E	call    _Moto_C
+				;78			}
+				;79			if(!SW_P1){
+				_L28:
+01E2	3CA2	sz      PE1
+01E3	29C5	jmp     _L30
+				;80				auto1=0;
+01E4	5F3B	clr     auto1[0]
+01E5	5F3C	clr     auto1[1]
+01E6	29C5	jmp     _L30
+01E7	29E7	jmp     $
+				startup_value:
+				@ROMDATA_BASE .SECTION 'CODE'
+01E8	0026	jmp     L0026
+01E9	0095	mov     PBPU, a
+01EA	0000	nop
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+01EB	0000	nop
+				;81			}
+				;82		}
+				;83	}
+				;84	
+				;85	void TM_Set(){
+				;86		_tm4c0=0b00100000;							
+				_TM_Set:
+				_TM_Set:
+0189	0F20	mov     a, 20H
+018A	80D0	lmov    TM4C0, a
+				;87		_tm4c1=0b11000001;							
+018C	0FC1	mov     a, C1H
+018D	80D1	lmov    TM4C1, a
+				;88		_tm4al=5000%256; _tm4ah=5000/256;         	
+018F	0F88	mov     a, 88H
+0190	80D4	lmov    TM4AL, a
+0192	0F13	mov     a, 13H
+0193	80D5	lmov    TM4AH, a
+				;89		_mf4e=1; _t4ae=1; 							
+0195	3133	set     MF4E
+0196	30B8	set     T4AE
+				;90		_t4on=1;
+0197	B1D0	lset    T4ON
+				;91		SEC=0; R1sec=100; AD50ms=5; 
+0199	5F3F	clr     SEC[0]
+019A	0F64	mov     a, 64H
+019B	40BE	mov     R1sec[0], a
+019C	0F05	mov     a, 5H
+019D	40BD	mov     AD50ms[0], a
+019E	0003	ret
+				;92	}
+				;93	
+				;94	void Interrupt_Set(){
+				;95		_pac3=1; _papu3=1;
+				_Interrupt_Set:
+				_Interrupt_Set:
+017C	3193	set     PAC3
+017D	3191	set     PAPU3
+				;96		_pac4=1; _papu4=1;
+017E	3213	set     PAC4
+017F	3211	set     PAPU4
+				;97		_integ=0b00000110; //INT00180	0F06	mov     a, 6H
+0181	00B9	mov     INTEG, a
+				;98		_int0e=1;
+0182	30B0	set     INT0E
+				;99		_ifs0=0x00;
+0183	9F48	lclr    IFS0
+				;100		_int1e=1;
+0185	3130	set     INT1E
+				;101		_ifs1=0x00;
+0186	9F49	lclr    IFS1
+0188	0003	ret
+				;102	}
+				;103	
+				;104	void Moto_Set(){			//				;105		SW_P0C=1; SW_P0PU=1;	//				_Moto_Set:
+				_Moto_Set:
+016E	3023	set     PEC0
+016F	3021	set     PEPU0
+				;106		SW_P1C=1; SW_P1PU=1;
+0170	30A3	set     PEC1
+0171	30A1	set     PEPU1
+				;107		_pds2=0x01;				//0172	0F01	mov     a, 1H
+0173	80EE	lmov    PDS2, a
+				;108		_tm2c0=0b00000000;
+0175	1F51	clr     TM2C0
+				;109		_tm2c1=0b10101000;
+0176	0FA8	mov     a, A8H
+0177	00D2	mov     TM2C1, a
+				;110		_tm2rp=160;
+0178	0FA0	mov     a, A0H
+0179	00D7	mov     TM2RP, a
+				;111		_t2on=1;
+017A	31D1	set     T2ON
+017B	0003	ret
+				;112	}
+				;113	
+				;114	void Moto_C(u8 angle){
+				_Moto_C:
+				_Moto_C:
+011E	4094	mov     angle[0], a
+				;115			temp=Index*20+1000;
+011F	4740	mov     a, Index[0]
+0120	408E	mov     input, a
+0121	4741	mov     a, Index[1]
+0122	408F	mov     del, a
+0123	0F14	mov     a, 14H
+0124	4090	mov     buf, a
+0125	5F11	clr     buf[1]
+0126	210B	call    L010B
+0127	4712	mov     a, buf[2]
+0128	4083	mov     rd, a
+0129	4713	mov     a, buf[3]
+012A	4084	mov     re, a
+012B	0FE8	mov     a, E8H
+012C	4383	addm    a, rd
+012D	0F03	mov     a, 3H
+012E	5384	adcm    a, re
+				;116			_tm2al=temp%256;
+012F	4703	mov     a, rd
+0130	4081	mov     rb, a
+0131	4704	mov     a, re
+0132	4082	mov     rc, a
+0133	0FFF	mov     a, FFH
+0134	4681	andm    a, rb
+0135	0F80	mov     a, 80H
+0136	4682	andm    a, rc
+0137	7B82	snz     rc.7
+0138	2944	jmp     L0144
+0139	0FFF	mov     a, FFH
+013A	4381	addm    a, rb
+013B	0FFF	mov     a, FFH
+013C	5382	adcm    a, rc
+013D	0FFF	mov     a, FFH
+013E	4582	orm     a, rc
+013F	0F00	mov     a, 0H
+0140	4581	orm     a, rb
+0141	5481	inc     rb
+0142	3D0A	sz      Z
+0143	5482	inc     rc
+				L0144:
+0144	4701	mov     a, rb
+0145	00D5	mov     TM2AL, a
+				;117			_tm2ah=temp/256;
+0146	4703	mov     a, rd
+0147	4081	mov     rb, a
+0148	4704	mov     a, re
+0149	4082	mov     rc, a
+014A	7B84	snz     re.7
+014B	2952	jmp     L0152
+014C	0FFF	mov     a, FFH
+014D	4303	add     a, rd
+014E	4081	mov     rb, a
+014F	0F00	mov     a, 0H
+0150	5304	adc     a, re
+0151	4082	mov     rc, a
+				L0152:
+0152	4702	mov     a, rc
+0153	00D6	mov     TM2AH, a
+				;118			temp>>=1;
+0154	4703	mov     a, rd
+0155	4080	mov     ra, a
+0156	4704	mov     a, re
+0157	4081	mov     rb, a
+0158	5A01	rlca    rb
+0159	5B81	rrc     rb
+015A	5B80	rrc     ra
+015B	4700	mov     a, ra
+015C	40C4	mov     temp[0], a
+015D	4701	mov     a, rb
+015E	40C5	mov     temp[1], a
+				;119			Index=angle;
+015F	4714	mov     a, angle[0]
+0160	40C0	mov     Index[0], a
+0161	5F41	clr     Index[1]
+0162	0003	ret
+				;120	}
+				;121	
+				;122	void AD_Set(){
+				;123		_adcr0=0b00000001;							//				_AD_Set:
+				_AD_Set:
+0163	0F01	mov     a, 1H
+0164	00E8	mov     ADCR0, a
+				;124		_adcr1=0b00000110;							//A/D Clock=fSYS/64,VREFS=0
+0165	0F06	mov     a, 6H
+0166	00E9	mov     ADCR1, a
+				;125		_pas0=0b00110000;							//0167	0F30	mov     a, 30H
+0168	80E0	lmov    PAS0, a
+				;126		_pas3=0b00000011;							//016A	0F03	mov     a, 3H
+016B	80E3	lmov    PAS3, a
+016D	0003	ret
+				;127		//_ade=1;									//				;128	}
+				;129	
+				;130	DEFINE_ISR(button_up,0x04){		//INT0 PA3				@button_up_code .SECTION 'CODE'
+0004	4087	mov     r104, a
+0005	070B	mov     a, BP
+0006	1F0B	clr     BP
+0007	2827	jmp     _button_up
+				_button_up:
+				_button_up:
+0027	4088	mov     r204, a
+0028	070A	mov     a, STATUS
+0029	40D9	mov     r304, a
+				;131		led2=0;
+002A	3796	clr     PB7
+				;132		_int0f = 0;	
+002B	3630	clr     INT0F
+002C	4708	mov     a, r204
+002D	008B	mov     BP, a
+002E	4759	mov     a, r304
+002F	008A	mov     STATUS, a
+0030	4707	mov     a, r104
+0031	0004	reti
+				;133		
+				;134	}
+				;135	
+				;136	
+				;137	DEFINE_ISR(Button_Down,0x08){	//INT1 PA4				@Button_Down_code .SECTION 'CODE'
+				@dummy4 .SECTION 'CODE'
+0008	4089	mov     r108, a
+0009	070B	mov     a, BP
+000A	1F0B	clr     BP
+000B	283C	jmp     _Button_Down
+				@dummy56 .SECTION 'CODE'
+				_Button_Down:
+				_Button_Down:
+003C	408A	mov     r208, a
+003D	070A	mov     a, STATUS
+003E	40DA	mov     r308, a
+				;138		led2=1;
+003F	3396	set     PB7
+				;139		_int1f = 0;
+0040	36B0	clr     INT1F
+0041	470A	mov     a, r208
+0042	008B	mov     BP, a
+0043	475A	mov     a, r308
+0044	008A	mov     STATUS, a
+0045	4709	mov     a, r108
+0046	0004	reti
+				;140	}
+				;141	
+				;142	DEFINE_ISR(ISR_STM,0x38){		//				@ISR_STM_code .SECTION 'CODE'
+0038	408B	mov     r138, a
+0039	070B	mov     a, BP
+003A	1F0B	clr     BP
+003B	2847	jmp     _ISR_STM
+				_ISR_STM:
+				_ISR_STM:
+0047	408C	mov     r238, a
+0048	070A	mov     a, STATUS
+0049	40DB	mov     r338, a
+				;143		if(--AD50ms==0){
+004A	553D	deca    AD50ms[0]
+004B	408D	mov     ra38, a
+004C	5E0D	snz     ra38
+004D	2851	jmp     _L13
+004E	470D	mov     a, ra38
+004F	40BD	mov     AD50ms[0], a
+0050	285E	jmp     _L14
+				;144			AD50ms=1;
+				_L13:
+0051	0F01	mov     a, 1H
+0052	40BD	mov     AD50ms[0], a
+				;145			_start=1; _start=0;							//0053	33E8	set     START
+0054	37E8	clr     START
+				;146			LED_Port=~_adrh;
+0055	016B	cpla    ADRH
+0056	00AA	mov     PG, a
+				;147			AxisX = _adrh;
+0057	076B	mov     a, ADRH
+0058	4099	mov     AxisX[0], a
+0059	5F1A	clr     AxisX[1]
+				;148			l=&AxisX;
+005A	0F99	mov     a, 99H
+005B	40C2	mov     l[0], a
+005C	0F00	mov     a, 0H
+005D	40C3	mov     l[1], a
+				;149		}
+				;150		if(--R1sec==0){	
+				_L14:
+005E	553E	deca    R1sec[0]
+005F	408D	mov     ra38, a
+0060	470D	mov     a, ra38
+0061	40BE	mov     R1sec[0], a
+0062	508D	sz      ra38
+0063	2871	jmp     _L16
+				;151			R1sec=100;
+0064	0F64	mov     a, 64H
+0065	40BE	mov     R1sec[0], a
+				;152			led=1;
+0066	3316	set     PB6
+				;153	
+				;154			if(++SEC==5)
+0067	543F	inca    SEC[0]
+0068	408D	mov     ra38, a
+0069	470D	mov     a, ra38
+006A	40BF	mov     SEC[0], a
+006B	470D	mov     a, ra38
+006C	0A05	sub     a, 5H
+006D	390A	snz     Z
+006E	2871	jmp     _L16
+				;155			{
+				;156				SEC=0;
+006F	5F3F	clr     SEC[0]
+				;157				led=0;
+0070	3716	clr     PB6
+				;158				
+				;159			}
+				;160		}
+				;161		_t4af=0;
+				_L16:
+0071	36B8	clr     T4AF
+0072	470C	mov     a, r238
+0073	008B	mov     BP, a
+0074	475B	mov     a, r338
+0075	008A	mov     STATUS, a
+0076	470B	mov     a, r138
+0077	0004	reti
+				;162	}
+				;163	
+				;164	void Delay100us(u16 del){
+				;165		u16 a,k;;
+				;166		for(a=0;a<del;a++)
+				;167			for(k=0;k<=25;k++)
+				;168				GCC_NOP();
+				;169	}
+				;170	
+				;171	void delay_ms(unsigned char del){	
+				_delay_ms:
+				_delay_ms:
+00C3	408F	mov     del[0], a
+				;172		unsigned char a;
+				;173		for(a=0;a<del;a++) 
+00C4	5F00	clr     ra
+00C5	28CF	jmp     L00CF
+00CE	5480	inc     ra
+				L00CF:
+00CF	4700	mov     a, ra
+00D0	420F	sub     a, del[0]
+00D1	390A	snz     Z
+00D2	28C6	jmp     L00C6
+00D3	0003	ret
+00D4	1483	inc     MP1L
+				L00D5:
+00D5	3F84	sz      MP1H.7
+00D6	28D9	jmp     L00D9
+00D7	0702	mov     a, [02H]
+00D8	0003	ret
+				L00D9:
+00D9	1B04	rrca    MP1H
+00DA	0E3F	and     a, 3FH
+00DB	0089	mov     TBHP, a
+00DC	1B03	rrca    MP1L
+00DD	0087	mov     TBLP, a
+00DE	1D05	tabrd   ACC
+00DF	3C0A	sz      C
+00E0	0708	mov     a, TBLH
+00E1	0003	ret
+				;174			GCC_DELAY(2000);		//				L00C6:
+00C6	0F01	mov     a, 1H
+00C7	408E	mov     input, a
+00C8	0FF1	mov     a, F1H
+00C9	340B	clr     BP0
+00CA	348B	clr     BP1
+00CB	20B9	call    L00B9
+00CC	348B	clr     BP1
+00CD	340B	clr     BP0
+				;175	}
+				;176	
+				;177	void delay1s(void)   //				;178	{
+				;179	    unsigned char a,b,c,n;
+				;180	    for(c=205;c>0;c--)
+				;181	        for(b=171;b>0;b--)
+				;182	            for(a=8;a>0;a--);
+				;183	    for(n=1;n>0;n--);
+				;184	}
+				;file D:\Users\IIIT\Desktop\Sevro_TM_button\UART.c
+				;1	#include "UART.h"
+				;2	#include "HT66F70A.h"
+				;3	#include "TM.h"
+				;4	#include "String.h"
+				;5	 
+				;6	//				;7	volatile unsigned int flag = 0;
+				;8	char buff[num];
+				;9	char Buff[32] = "\0";
+				;10	unsigned int count = 0;
+				;11	 
+				;12	 
+				;13	void UART_INIT(void)
+				;14	{
+				;15	  TM0_INIT();      
+				_UART_INIT:
+				_UART_INIT:
+0032	219F	call    _TM0_INIT
+0033	0003	ret
+0034	0000	nop
+0035	0000	nop
+0036	0000	nop
+0037	0000	nop
+				;16	}
+				;17	 
+				;18	void Waitflag(void)
+				;19	{
+				;20		while (!flag);
+				_L4:
+				_Waitflag:
+				_Waitflag:
+				@dummy8 .SECTION 'CODE'
+000C	4717	mov     a, flag[0]
+000D	4518	or      a, flag[1]
+000E	3D0A	sz      Z
+000F	280C	jmp     _L4
+				;21		flag=0;//0010	5F17	clr     flag[0]
+0011	5F18	clr     flag[1]
+0012	0003	ret
+0013	0000	nop
+				;22	}
+				;23	 
+				;24	 
+				;25	void WByte(unsigned char input)
+				;26	{
+				_WByte:
+				_WByte:
+00E2	408E	mov     input[0], a
+				;27	 
+				;28	    unsigned char i=8;
+				;29	    TXD=0;
+00E3	351A	clr     PC2
+				;30	    _t0on=1; //00E4	31DE	set     T0ON
+				;31	    Waitflag();
+00E5	200C	call    _L4
+				;32	    while(i--)
+00E6	0F09	mov     a, 9H
+00E7	408F	mov     del, a
+				L00E8:
+00E8	578F	sdz     del
+00E9	28EB	jmp     L00EB
+00EA	28F8	jmp     L00F8
+				;33	    {
+				;34	        TXD=input & 0x01;         
+				L00EB:
+00EB	470E	mov     a, input[0]
+00EC	0E01	and     a, 1H
+00ED	4081	mov     rb, a
+00EE	5F00	clr     ra
+00EF	5081	sz      rb
+00F0	7100	set     ra.2
+00F1	351A	clr     PC2
+00F2	4700	mov     a, ra
+00F3	059A	orm     a, PC
+				;35	        input >>= 1;
+00F4	340A	clr     C
+00F5	5B8E	rrc     input[0]
+				;36	        Waitflag();
+00F6	200C	call    _L4
+00F7	28E8	jmp     L00E8
+				;37	    }
+				;38	    TXD=1;
+				L00F8:
+00F8	311A	set     PC2
+				;39	    Waitflag();
+00F9	200C	call    _L4
+				;40	    _t0on = 0;
+00FA	35DE	clr     T0ON
+00FB	0003	ret
+				;41	        
+				;42	}
+				;43	 
+				;44	void Send(char *buf)
+				;45	{
+				;46		while(*buf != '\0')
+				_Send:
+				_Send:
+00FC	2902	jmp     _L11
+				_L11:
+0102	4710	mov     a, buf[0]
+0103	0083	mov     MP1L, a
+0104	4711	mov     a, buf[1]
+0105	0084	mov     MP1H, a
+0106	20D5	call    L00D5
+0107	4080	mov     ra, a
+0108	5080	sz      ra
+0109	28FD	jmp     _L12
+010A	0003	ret
+				L010B:
+010B	5F12	clr     buf[2]
+010C	5F13	clr     buf[3]
+				L010D:
+010D	7810	snz     buf[0].0
+010E	2913	jmp     L0113
+010F	470E	mov     a, input
+0110	4392	addm    a, buf[2]
+0111	470F	mov     a, del
+0112	5393	adcm    a, buf[3]
+				L0113:
+0113	340A	clr     C
+0114	5A8E	rlc     input
+0115	5A8F	rlc     del
+0116	340A	clr     C
+0117	5B91	rrc     buf[1]
+0118	5B90	rrc     buf[0]
+0119	4710	mov     a, buf[0]
+011A	4511	or      a, buf[1]
+011B	390A	snz     Z
+011C	290D	jmp     L010D
+011D	0003	ret
+				;47		{
+				;48			WByte(*buf);
+				_L12:
+00FD	4700	mov     a, ra
+00FE	20E2	call    _WByte
+				;49			buf++;
+00FF	5490	inc     buf[0]
+0100	3D0A	sz      Z
+0101	5491	inc     buf[1]
+				;50		}
+				;51	}
+				;52	 
+				;53	void Send_num(unsigned int s,char *buf)
+				;54	{
+				;55		while(s--)
+				;56		{
+				;57			WByte(*buf);
+				;58			buf++;
+				;59		}
+				;60	}
+				;61	 
+				;62		
+				;63	void Send_Array(void)
+				;64	{
+				;65		unsigned int i;
+				;66		for(i = 0;i < num;i++)
+				;67	    WByte(buff[i]);		
+				;68	}
+				;69	 
+				;70	unsigned char RByte(void)
+				;71	{
+				;72	    unsigned char receive;
+				;73	    unsigned char i=8;
+				;74	    while(RXD);
+				;75	    _t0on=1;        //				;76	    Waitflag();
+				;77	    while(i--)
+				;78	    {
+				;79	        receive >>= 1;
+				;80	        if(RXD)
+				;81	        receive |= 0x80;
+				;82	        Waitflag();
+				;83	    }
+				;84	    _t0on = 0;
+				;85	    return receive;
+				;86	}
+				;87	 
+				;88	void Receive(void)
+				;89	{
+				;90	    for(count = 0;count < num;count++)
+				;91	    {		
+				;92		    
+				;93		    buff[count] = RByte();
+				;94		}
+				;95	}
+				;96	 
+				;97	void Receive_num(unsigned int s,char *buf)
+				;98	{
+				;99		while(s--)
+				;100		{
+				;101		*buf = RByte();
+				;102		buf++;
+				;103		}
+				;104	}
+				;105	 
+				;106	void Receive_if(char *buf)
+				;107	{
+				;108		char get;
+				;109		while(1)
+				;110		{
+				;111			get = RByte();
+				;112			if(get == '\n')
+				;113			break;
+				;114			else
+				;115			{
+				;116		    *buf = get;
+				;117		    buf++;
+				;118			}
+				;119		}
+				;120	}
+				;file D:\Users\IIIT\Desktop\Sevro_TM_button\Interrupt.h
+				;1	#ifndef _INTERRUPT_H_
+				;2	#define _INTERRUPT_H_
+				;3	#endif
+				;4	 
+				;5	#define ISR_TMR0//				;6	 
+				;7	void __attribute((interrupt(0x14))) ISR_tmr0_tmr2(void)//TM0				;8	{
+				@ISR_tmr0_tmr2_code .SECTION 'CODE'
+0014	4085	mov     r114, a
+0015	070B	mov     a, BP
+0016	1F0B	clr     BP
+0017	2818	jmp     _ISR_tmr0_tmr2
+				_ISR_tmr0_tmr2:
+				_ISR_tmr0_tmr2:
+				@dummy20 .SECTION 'CODE'
+0018	4086	mov     r214, a
+0019	070A	mov     a, STATUS
+001A	40D8	mov     r314, a
+				;9		//				;10		#ifdef ISR_TMR0
+				;11		extern volatile unsigned int flag;
+				;12		_emi = 0;
+001B	3430	clr     EMI
+				;13		_t0af = 0;
+001C	36B4	clr     T0AF
+				;14		flag = 1;
+001D	0F01	mov     a, 1H
+001E	4097	mov     flag[0], a
+001F	5F18	clr     flag[1]
+				;15		_emi = 1;
+0020	3030	set     EMI
+0021	4706	mov     a, r214
+0022	008B	mov     BP, a
+0023	4758	mov     a, r314
+0024	008A	mov     STATUS, a
+0025	4705	mov     a, r114
+				L0026:
+0026	0004	reti
+				;16		//				;17		#else
+				;18		_emi = 0;
+				;19		_t2af = 0;
+				;20		_emi = 1;
+				;21		#endif
+				;22		
+				;23	}
+				;file D:\Users\IIIT\Desktop\Sevro_TM_button\startup1_l.asm
+				;1	;;--------------------------------------------------------------;;
+				;2	;;    This file is part of the Holtek C Compiler V3 package     ;;
+				;3	;;    For the initialization of static linkage variables        ;;
+				;4	;;    Copyright (C) 2017 Holtek Semiconductor Inc.              ;;
+				;5	;;    Version: 1.07 (Above IDE3000 V7.94)                       ;;
+				;6	;;    Date:    2017/03/06                                        ;;
+				;7	;;--------------------------------------------------------------;;
+				;8	
+				;9	acc equ [05h]
+				;10	tblp equ [07h]
+				;11	tblh equ [08h]
+				;12	;;tbhp equ [09h] 
+				;13	r0 equ [00h]
+				;14	mp0 equ [01h]
+				;15	r1 equ [02h]
+				;16	mp1l equ [03h]
+				;17	mp1h equ [04h]
+				;18	z equ [0ah].2
+				;19	c equ [0ah].0
+				;20	
+				;21	ifndef tbhp
+				;22	tbhp equ [09h]
+				;23	endif
+				;24	 
+				;25	extern startup_value_1:near
+				;26	
+				;27	@start .section 'code'
+				;28	begin_startup_value:
+				;29	  mov a,low (offset startup_value_1) 
+				begin_startup_value:
+				@start .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+0078	0FE7	mov     a, E7H
+				;30	  mov tblp,a
+0079	0087	mov     TBLP, a
+				;31	  mov a,high (offset startup_value_1) 
+007A	0F01	mov     a, 1H
+				;32	  mov tbhp,a
+007B	0089	mov     TBHP, a
+				;33	next_table:
+				;34	  ;CLR WDT
+				;35	  inc tblp
+				next_table:
+007C	1487	inc     TBLP
+				;36	  sz z
+007D	3D0A	sz      Z
+				;37	  inc tbhp
+007E	1489	inc     TBHP
+				;38	ifdef USE_TABRDC
+				;39	  tabrdc mp0
+				;40	else
+				;41	  tabrd mp0
+007F	1D01	tabrd   MP0
+				;42	endif
+				;43	  sz mp0
+0080	1081	sz      MP0
+				;44	  jmp read_data
+0081	2883	jmp     read_data
+				;45	  jmp startupend1
+0082	2898	jmp     startupend1
+				;46	read_data:
+				;47	  inc tblp
+				read_data:
+0083	1487	inc     TBLP
+				;48	  sz z
+0084	3D0A	sz      Z
+				;49	  inc tbhp
+0085	1489	inc     TBHP
+				;50	ifdef USE_TABRDC
+				;51	  tabrdc mp1l
+				;52	else
+				;53	  tabrd mp1l
+0086	1D03	tabrd   MP1L
+				;54	endif
+				;55	  mov a,tblh
+0087	0708	mov     a, TBLH
+				;56	  mov mp1h,a
+0088	0084	mov     MP1H, a
+				;57	next_data:
+				;58	  inc tblp
+				next_data:
+0089	1487	inc     TBLP
+				;59	  sz z
+008A	3D0A	sz      Z
+				;60	  inc tbhp
+008B	1489	inc     TBHP
+				;61	ifdef USE_TABRDC
+				;62	  tabrdc acc
+				;63	else
+				;64	  tabrd acc
+008C	1D05	tabrd   ACC
+				;65	endif
+				;66	  mov r1,a
+008D	0082	mov     [02H], a
+				;67	  sdz mp0
+008E	1781	sdz     MP0
+				;68	  jmp $+2
+008F	2891	jmp     L0091
+				;69	  jmp next_table
+0090	287C	jmp     next_table
+				;70	  inc mp1l
+				L0091:
+0091	1483	inc     MP1L
+				;71	  mov a,tblh
+0092	0708	mov     a, TBLH
+				;72	  mov r1,a
+0093	0082	mov     [02H], a
+				;73	  inc mp1l
+0094	1483	inc     MP1L
+				;74	  sdz mp0
+0095	1781	sdz     MP0
+				;75	  jmp next_data
+0096	2889	jmp     next_data
+				;76	  jmp next_table
+0097	287C	jmp     next_table
+				;77	
+				;78	;end_startup_value:
+				;79	
+				;80	startupend1:
+				;81	ifndef Disable_Bit_Initial
+				;82		MOV A,high  bitdatasec1_start
+				startupend1:
+0098	0F00	mov     a, 0H
+				;83		MOV mp1h,a
+0099	0084	mov     MP1H, a
+				;84		MOV A,offset bitdatasec1_end
+009A	0F80	mov     a, 80H
+				;85		mov mp1l,A
+009B	0083	mov     MP1L, a
+				;86		dec mp1l
+009C	1583	dec     MP1L
+				;87		clr z
+009D	350A	clr     Z
+				;88		sub a,offset bitdatasec1_start
+009E	0A80	sub     a, 80H
+				;89		sz z
+009F	3D0A	sz      Z
+				;90		jmp startupend2
+00A0	28A5	jmp     startupend2
+				;91	L0005:
+				;92		set r1
+				L0005:
+00A1	1F82	set     [02H]
+				;93		dec mp1l
+00A2	1583	dec     MP1L
+				;94		sdz  acc
+00A3	1785	sdz     ACC
+				;95		jmp L0005
+00A4	28A1	jmp     L0005
+				;96	
+				;97	startupend2:
+				;98		MOV A,high  bitdatasec0_start
+				startupend2:
+00A5	0F00	mov     a, 0H
+				;99		MOV mp1h,a
+00A6	0084	mov     MP1H, a
+				;100		MOV A,offset bitdatasec0_end
+00A7	0F80	mov     a, 80H
+				;101		mov mp1l,A
+00A8	0083	mov     MP1L, a
+				;102		dec mp1l
+00A9	1583	dec     MP1L
+				;103		clr z
+00AA	350A	clr     Z
+				;104		sub a,offset bitdatasec0_start
+00AB	0A80	sub     a, 80H
+				;105		sz  z
+00AC	3D0A	sz      Z
+				;106		jmp startupend3
+00AD	28B2	jmp     startupend3
+				;107	L0006:
+				;108		clr r1
+				L0006:
+00AE	1F02	clr     [02H]
+				;109		dec mp1l
+00AF	1583	dec     MP1L
+				;110		sdz  acc
+00B0	1785	sdz     ACC
+				;111		jmp L0006
+00B1	28AE	jmp     L0006
+				;112	startupend3:
+				;113	endif		
+				;114	   
+				;115	@ROMDATA_BASE .SECTION com_l 'CODE'  
+				;116	startup_value:
+				;117	;;linker range the initial value table here
+				;118	
+				;119	@BITDATASEC1 .SECTION com_l 'DATA'  
+				;120	bitdatasec1_start:
+				;121	
+				;122	@BITDATASEC1 .SECTION com_e 'DATA'  
+				;123	bitdatasec1_end:
+				;124	
+				;125	@BITDATASEC .SECTION com_l 'DATA'  
+				;126	bitdatasec0_start:
+				;127	
+				;128	@BITDATASEC .SECTION com_e 'DATA'  
+				;129	bitdatasec0_end:
+				;file C:\Users\IIIT\Documents\HTK_Project\Bluetooth\TM.c
+				;1	#include "HT66F70A.h"
+				;2	#include "TM.h"
+				;3	 
+				;4	//				;5	void TM0_INIT(void)
+				;6	{
+				;7		//TXD RXD				;8		_pcc2 = 0;
+				_TM0_INIT:
+				_TM0_INIT:
+019F	351B	clr     PCC2
+				;9		_pcc3 = 1;
+01A0	319B	set     PCC3
+				;10		_pcpu3 = 1;
+01A1	3199	set     PCPU3
+				;11		_pcpu2 = 1;
+01A2	3119	set     PCPU2
+				;12		
+				;13	    _tm0c0=0x10;//01A3	0F10	mov     a, 10H
+01A4	00DE	mov     TM0C0, a
+				;14	    _tm0c1=0xc1;//01A5	0FC1	mov     a, C1H
+01A6	00DF	mov     TM0C1, a
+				;15	    _tm0al=0x41;//buad rate 9600
+01A7	0F41	mov     a, 41H
+01A8	00E2	mov     TM0AL, a
+				;16	    _tm0ah=0x03; 
+01A9	0F03	mov     a, 3H
+01AA	00E3	mov     TM0AH, a
+				;17	 
+				;18	       
+				;19	    _t0ae = 1;
+01AB	30B4	set     T0AE
+				;20	    _t0af = 0;
+01AC	36B4	clr     T0AF
+				;21	    _t0on = 0;
+01AD	35DE	clr     T0ON
+				;22	    _emi = 1;
+01AE	3030	set     EMI
+				;23	    _mf0e = 1;
+01AF	30B1	set     MF0E
+				;24	    _mf0f = 0;
+01B0	36B1	clr     MF0F
+01B1	0003	ret
+				;25		}
+				;26	 
+				;27	 
+				data .SECTION 'DATA'
+				__papu DB DUP (?) ; __papu
+				__pac DB DUP (?) ; __pac
+				__pb DB DUP (?) ; __pb
+				__pbc DB DUP (?) ; __pbc
+				__pcpu DB DUP (?) ; __pcpu
+				__pc DB DUP (?) ; __pc
+				__pcc DB DUP (?) ; __pcc
+				__pepu DB DUP (?) ; __pepu
+				__pe DB DUP (?) ; __pe
+				__pec DB DUP (?) ; __pec
+				__pg DB DUP (?) ; __pg
+				__pgc DB DUP (?) ; __pgc
+				__intc0 DB DUP (?) ; __intc0
+				__intc1 DB DUP (?) ; __intc1
+				__intc3 DB DUP (?) ; __intc3
+				__mfi0 DB DUP (?) ; __mfi0
+				__mfi4 DB DUP (?) ; __mfi4
+				__integ DB DUP (?) ; __integ
+				__wdtc DB DUP (?) ; __wdtc
+				__tm2c0 DB DUP (?) ; __tm2c0
+				__tm2c1 DB DUP (?) ; __tm2c1
+				__tm2al DB DUP (?) ; __tm2al
+				__tm2ah DB DUP (?) ; __tm2ah
+				__tm2rp DB DUP (?) ; __tm2rp
+				__tm0c0 DB DUP (?) ; __tm0c0
+				__tm0c1 DB DUP (?) ; __tm0c1
+				__tm0al DB DUP (?) ; __tm0al
+				__tm0ah DB DUP (?) ; __tm0ah
+				__adcr0 DB DUP (?) ; __adcr0
+				__adcr1 DB DUP (?) ; __adcr1
+				__adrh DB DUP (?) ; __adrh
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				rd DB DUP (?)
+				re DB DUP (?)
+				r114 DB DUP (?)
+				r214 DB DUP (?)
+				r104 DB DUP (?)
+				r204 DB DUP (?)
+				r108 DB DUP (?)
+				r208 DB DUP (?)
+				r138 DB DUP (?)
+				r238 DB DUP (?)
+				ra38 DB DUP (?)
+				input DB DUP (?) ; input
+				del DB DUP (?) ; del
+				buf DB DUP (?) ; buf
+				angle DB DUP (?) ; angle
+				count DB 2 DUP (?) ; count
+				flag DB 2 DUP (?) ; flag
+				AxisX DB DUP (?) ; AxisX
+				Buff DB DUP (?) ; Buff
+				auto1 DB 2 DUP (?) ; auto1
+				AD50ms DB DUP (?) ; AD50ms
+				R1sec DB DUP (?) ; R1sec
+				SEC DB DUP (?) ; SEC
+				Index DB 2 DUP (?) ; Index
+				l DB DUP (?) ; l
+				temp DB 2 DUP (?) ; temp
+				Head DB DUP (?) ; Head
+				buff DB DUP (?) ; buff
+				r314 DB DUP (?)
+				r304 DB DUP (?)
+				r308 DB DUP (?)
+				r338 DB DUP (?)
+				__ifs0 DB DUP (?) ; __ifs0
+				__ifs1 DB DUP (?) ; __ifs1
+				__tm4c0 DB DUP (?) ; __tm4c0
+				__tm4c1 DB DUP (?) ; __tm4c1
+				__tm4al DB DUP (?) ; __tm4al
+				__tm4ah DB DUP (?) ; __tm4ah
+				__pas0 DB DUP (?) ; __pas0
+				__pas3 DB DUP (?) ; __pas3
+				__pds2 DB DUP (?) ; __pds2
