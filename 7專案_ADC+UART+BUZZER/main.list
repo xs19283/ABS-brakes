@@ -1,0 +1,402 @@
+				;file D:\Users\IIIT\Desktop\7				;1	#include "HT66F70A.h"
+				;2	#include "MyType.h"
+				;3	#define fsys 8000000                             //				;4	#define	_TX			_pc1
+				;5	#define	_TXC		_pcc1
+				;6	#define	_RX			_pc3
+				;7	#define	_RXC		_pcc3			
+				;8	#define	fSYS		8000000	
+				;9	#define	BaudRate	9600	
+				;10	#define	BITC		(fSYS/BaudRate)					//Bit Interval Time Constant
+				;11	u8 SUM=30;
+				;12	void UARTTxData(u8);
+				;13	void delay_ms(u16);
+				;14	void main(void)
+				;15	{
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	2802	jmp     begin_startup_value
+				startupend3:
+				@start .SECTION 'CODE'
+003C	0F00	mov     a, 0H
+003D	008B	mov     BP, a
+003E	288F	jmp     _main
+003F	0000	nop
+0040	0000	nop
+0041	0000	nop
+0042	0000	nop
+				L0043:
+0043	0000	nop
+				L0044:
+0044	0000	nop
+0045	1785	sdz     ACC
+0046	2844	jmp     L0044
+				L0047:
+0047	0000	nop
+0048	1785	sdz     ACC
+0049	2847	jmp     L0047
+004A	5784	sdz     data
+004B	2847	jmp     L0047
+004C	0003	ret
+				;16		_RXC=1;	//INT0				_main:
+				_main:
+008F	319B	set     PCC3
+				;17		_TX=1; _TXC=0;					//_TX0090	309A	set     PC1
+0091	349B	clr     PCC1
+				;18	    _wdtc = 0xab;   //0092	0FAB	mov     a, ABH
+0093	00BE	mov     WDTC, a
+				;19		_scomen = 0;    //0094	367F	clr     SCOMEN
+				;20		_tm0c0=0b00010000;	//For Bit Rate,fINT=fSYS
+0095	0F10	mov     a, 10H
+0096	00DE	mov     TM0C0, a
+				;21		_tm0c1=0b11000001;	//T/C, TM0A Match Clear	    
+0097	0FC1	mov     a, C1H
+0098	00DF	mov     TM0C1, a
+				;22		_tm2c0=0; _tm2c1=0b00110001;	//STM:0099	1F51	clr     TM2C0
+009A	0F31	mov     a, 31H
+009B	00D2	mov     TM2C1, a
+				;23		_emi=1;	         //009C	3030	set     EMI
+				;24		while(1)
+				;25		{
+				;26					UARTTxData(SUM);	   
+				_L15:
+009D	4707	mov     a, SUM[0]
+009E	2062	call    _UARTTxData
+				;27					UARTTxData(20);	  
+009F	0F14	mov     a, 14H
+00A0	2062	call    _UARTTxData
+				;28					delay_ms(1000);
+00A1	0FE8	mov     a, E8H
+00A2	4085	mov     del, a
+00A3	0F03	mov     a, 3H
+00A4	4086	mov     del[1], a
+00A5	204D	call    _delay_ms
+				;29					delay_ms(1000);
+00A6	0FE8	mov     a, E8H
+00A7	4085	mov     del, a
+00A8	0F03	mov     a, 3H
+00A9	4086	mov     del[1], a
+00AA	204D	call    _delay_ms
+00AB	289D	jmp     _L15
+00AC	28AC	jmp     $
+				startup_value:
+				@ROMDATA_BASE .SECTION 'CODE'
+00AD	0001	clr     wdt
+00AE	0087	mov     TBLP, a
+				@ROMDATA_BASE .SECTION 'CODE'
+00AF	001E	dc	0001EH
+				;30		}
+				;31	}
+				;32	
+				;33	void UARTTxData(u8 data)
+				;34	{	u8 temp=0b00000001;
+				_UARTTxData:
+				_UARTTxData:
+0062	4084	mov     data[0], a
+006E	0F01	mov     a, 1H
+006F	4080	mov     ra, a
+				;35		_tm0al=BITC%256; _tm0ah=BITC/256;				//T
+0063	0F41	mov     a, 41H
+0064	00E2	mov     TM0AL, a
+0065	0F03	mov     a, 3H
+0066	00E3	mov     TM0AH, a
+				;36		_TX=0;											//0067	349A	clr     PC1
+				;37		_t0on=1;
+0068	31DE	set     T0ON
+				;38		_t0af=0;
+0069	36B4	clr     T0AF
+				;39		while(!_t0af);									//				L006A:
+006A	3AB4	snz     T0AF
+006B	286A	jmp     L006A
+				;40		_t0af=0;
+006C	36B4	clr     T0AF
+006D	5F01	clr     rb
+				;41		do 
+				;42		{	_TX=(data & temp)? 1 : 0 ;	  				//				L0070:
+0070	4700	mov     a, ra
+0071	4604	and     a, data[0]
+0072	4082	mov     rc, a
+0073	0F00	mov     a, 0H
+0074	4202	sub     a, rc
+0075	4083	mov     rd, a
+0076	4703	mov     a, rd
+0077	4582	orm     a, rc
+0078	5A82	rlc     rc
+0079	5F02	clr     rc
+007A	5A82	rlc     rc
+007B	4702	mov     a, rc
+007C	4382	addm    a, rc
+007D	349A	clr     PC1
+007E	4702	mov     a, rc
+007F	059A	orm     a, PC
+				;43			while(!_t0af);								//				L0080:
+0080	3AB4	snz     T0AF
+0081	2880	jmp     L0080
+				;44			_t0af=0;
+0082	36B4	clr     T0AF
+				;45			temp<<=1;
+0083	4700	mov     a, ra
+0084	4380	addm    a, ra
+0085	5481	inc     rb
+				;46		} while (temp);	
+0086	4701	mov     a, rb
+0087	0A08	sub     a, 8H
+0088	390A	snz     Z
+0089	2870	jmp     L0070
+				;47		_TX=1;											//008A	309A	set     PC1
+				;48		while(!_t0af);
+				L008B:
+008B	3AB4	snz     T0AF
+008C	288B	jmp     L008B
+				;49		_t0on=0;
+008D	35DE	clr     T0ON
+008E	0003	ret
+				;50	}
+				;51	void delay_ms(u16 del)
+				;52	{	u16 i;
+				;53		for(i=0;i<del;i++) {GCC_DELAY(2000);}			//Delay del ms @fSYS=8MHz
+				_delay_ms:
+				_delay_ms:
+004D	5F01	clr     rb
+004E	5F02	clr     rc
+004F	285B	jmp     _L12
+				_L13:
+0050	0F01	mov     a, 1H
+0051	4084	mov     data, a
+0052	0FF1	mov     a, F1H
+0053	340B	clr     BP0
+0054	348B	clr     BP1
+0055	2043	call    L0043
+0056	348B	clr     BP1
+0057	340B	clr     BP0
+0058	5481	inc     rb
+0059	3D0A	sz      Z
+005A	5482	inc     rc
+				_L12:
+005B	4701	mov     a, rb
+005C	4205	sub     a, del[0]
+005D	4702	mov     a, rc
+005E	5206	sbc     a, del[1]
+005F	3B0A	snz     CZ
+0060	2850	jmp     _L13
+0061	0003	ret
+				;54	}
+				;file D:\Users\IIIT\Desktop\7				;1	;;--------------------------------------------------------------;;
+				;2	;;    This file is part of the Holtek C Compiler V3 package     ;;
+				;3	;;    For the initialization of static linkage variables        ;;
+				;4	;;    Copyright (C) 2017 Holtek Semiconductor Inc.              ;;
+				;5	;;    Version: 1.07 (Above IDE3000 V7.94)                       ;;
+				;6	;;    Date:    2017/03/06                                        ;;
+				;7	;;--------------------------------------------------------------;;
+				;8	
+				;9	acc equ [05h]
+				;10	tblp equ [07h]
+				;11	tblh equ [08h]
+				;12	;;tbhp equ [09h] 
+				;13	r0 equ [00h]
+				;14	mp0 equ [01h]
+				;15	r1 equ [02h]
+				;16	mp1l equ [03h]
+				;17	mp1h equ [04h]
+				;18	z equ [0ah].2
+				;19	c equ [0ah].0
+				;20	
+				;21	ifndef tbhp
+				;22	tbhp equ [09h]
+				;23	endif
+				;24	 
+				;25	extern startup_value_1:near
+				;26	
+				;27	@start .section 'code'
+				;28	begin_startup_value:
+				;29	  mov a,low (offset startup_value_1) 
+				begin_startup_value:
+				@start .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+0002	0FAC	mov     a, ACH
+				;30	  mov tblp,a
+0003	0087	mov     TBLP, a
+				;31	  mov a,high (offset startup_value_1) 
+0004	0F00	mov     a, 0H
+				;32	  mov tbhp,a
+0005	0089	mov     TBHP, a
+				;33	next_table:
+				;34	  ;CLR WDT
+				;35	  inc tblp
+				next_table:
+0006	1487	inc     TBLP
+				;36	  sz z
+0007	3D0A	sz      Z
+				;37	  inc tbhp
+0008	1489	inc     TBHP
+				;38	ifdef USE_TABRDC
+				;39	  tabrdc mp0
+				;40	else
+				;41	  tabrd mp0
+0009	1D01	tabrd   MP0
+				;42	endif
+				;43	  sz mp0
+000A	1081	sz      MP0
+				;44	  jmp read_data
+000B	280D	jmp     read_data
+				;45	  jmp startupend1
+000C	2822	jmp     startupend1
+				;46	read_data:
+				;47	  inc tblp
+				read_data:
+000D	1487	inc     TBLP
+				;48	  sz z
+000E	3D0A	sz      Z
+				;49	  inc tbhp
+000F	1489	inc     TBHP
+				;50	ifdef USE_TABRDC
+				;51	  tabrdc mp1l
+				;52	else
+				;53	  tabrd mp1l
+0010	1D03	tabrd   MP1L
+				;54	endif
+				;55	  mov a,tblh
+0011	0708	mov     a, TBLH
+				;56	  mov mp1h,a
+0012	0084	mov     MP1H, a
+				;57	next_data:
+				;58	  inc tblp
+				next_data:
+0013	1487	inc     TBLP
+				;59	  sz z
+0014	3D0A	sz      Z
+				;60	  inc tbhp
+0015	1489	inc     TBHP
+				;61	ifdef USE_TABRDC
+				;62	  tabrdc acc
+				;63	else
+				;64	  tabrd acc
+0016	1D05	tabrd   ACC
+				;65	endif
+				;66	  mov r1,a
+0017	0082	mov     [02H], a
+				;67	  sdz mp0
+0018	1781	sdz     MP0
+				;68	  jmp $+2
+0019	281B	jmp     L001B
+				;69	  jmp next_table
+001A	2806	jmp     next_table
+				;70	  inc mp1l
+				L001B:
+001B	1483	inc     MP1L
+				;71	  mov a,tblh
+001C	0708	mov     a, TBLH
+				;72	  mov r1,a
+001D	0082	mov     [02H], a
+				;73	  inc mp1l
+001E	1483	inc     MP1L
+				;74	  sdz mp0
+001F	1781	sdz     MP0
+				;75	  jmp next_data
+0020	2813	jmp     next_data
+				;76	  jmp next_table
+0021	2806	jmp     next_table
+				;77	
+				;78	;end_startup_value:
+				;79	
+				;80	startupend1:
+				;81	ifndef Disable_Bit_Initial
+				;82		MOV A,high  bitdatasec1_start
+				startupend1:
+0022	0F00	mov     a, 0H
+				;83		MOV mp1h,a
+0023	0084	mov     MP1H, a
+				;84		MOV A,offset bitdatasec1_end
+0024	0F80	mov     a, 80H
+				;85		mov mp1l,A
+0025	0083	mov     MP1L, a
+				;86		dec mp1l
+0026	1583	dec     MP1L
+				;87		clr z
+0027	350A	clr     Z
+				;88		sub a,offset bitdatasec1_start
+0028	0A80	sub     a, 80H
+				;89		sz z
+0029	3D0A	sz      Z
+				;90		jmp startupend2
+002A	282F	jmp     startupend2
+				;91	L0005:
+				;92		set r1
+				L0005:
+002B	1F82	set     [02H]
+				;93		dec mp1l
+002C	1583	dec     MP1L
+				;94		sdz  acc
+002D	1785	sdz     ACC
+				;95		jmp L0005
+002E	282B	jmp     L0005
+				;96	
+				;97	startupend2:
+				;98		MOV A,high  bitdatasec0_start
+				startupend2:
+002F	0F00	mov     a, 0H
+				;99		MOV mp1h,a
+0030	0084	mov     MP1H, a
+				;100		MOV A,offset bitdatasec0_end
+0031	0F80	mov     a, 80H
+				;101		mov mp1l,A
+0032	0083	mov     MP1L, a
+				;102		dec mp1l
+0033	1583	dec     MP1L
+				;103		clr z
+0034	350A	clr     Z
+				;104		sub a,offset bitdatasec0_start
+0035	0A80	sub     a, 80H
+				;105		sz  z
+0036	3D0A	sz      Z
+				;106		jmp startupend3
+0037	283C	jmp     startupend3
+				;107	L0006:
+				;108		clr r1
+				L0006:
+0038	1F02	clr     [02H]
+				;109		dec mp1l
+0039	1583	dec     MP1L
+				;110		sdz  acc
+003A	1785	sdz     ACC
+				;111		jmp L0006
+003B	2838	jmp     L0006
+				;112	startupend3:
+				;113	endif		
+				;114	   
+				;115	@ROMDATA_BASE .SECTION com_l 'CODE'  
+				;116	startup_value:
+				;117	;;linker range the initial value table here
+				;118	
+				;119	@BITDATASEC1 .SECTION com_l 'DATA'  
+				;120	bitdatasec1_start:
+				;121	
+				;122	@BITDATASEC1 .SECTION com_e 'DATA'  
+				;123	bitdatasec1_end:
+				;124	
+				;125	@BITDATASEC .SECTION com_l 'DATA'  
+				;126	bitdatasec0_start:
+				;127	
+				;128	@BITDATASEC .SECTION com_e 'DATA'  
+				;129	bitdatasec0_end:
+				data .SECTION 'DATA'
+				__pc DB DUP (?) ; __pc
+				__pcc DB DUP (?) ; __pcc
+				__intc0 DB DUP (?) ; __intc0
+				__mfi0 DB DUP (?) ; __mfi0
+				__wdtc DB DUP (?) ; __wdtc
+				__tm2c0 DB DUP (?) ; __tm2c0
+				__tm2c1 DB DUP (?) ; __tm2c1
+				__tm0c0 DB DUP (?) ; __tm0c0
+				__tm0c1 DB DUP (?) ; __tm0c1
+				__tm0al DB DUP (?) ; __tm0al
+				__tm0ah DB DUP (?) ; __tm0ah
+				__scomc DB DUP (?) ; __scomc
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				rd DB DUP (?)
+				data DB DUP (?) ; data
+				del DB 2 DUP (?) ; del
+				SUM DB DUP (?) ; SUM
