@@ -1,0 +1,1030 @@
+				;file D:\Users\IIIT\Desktop\Hall\Sevro_TM_button.c
+				;1	#include "HT66F70A.h"
+				;2	
+				;3	#define fsys 8000000                             //				;4	#define	_TX			_pc1
+				;5	#define	_TXC		_pcc1
+				;6	#define	_RX			_pc3
+				;7	#define	_RXC		_pcc3			
+				;8	#define	fSYS		8000000	
+				;9	#define	BaudRate	9600	
+				;10	#define	BITC		(fSYS/BaudRate)					//Bit Interval Time Constant
+				;11	
+				;12	typedef	unsigned char	u8;
+				;13	typedef	char			s8;
+				;14	typedef	unsigned short	u16;
+				;15	typedef	short			s16;
+				;16	typedef	unsigned long	u32;
+				;17	typedef	long			s32;
+				;18	u8 AxisX;
+				;19	u8 Head;
+				;20	u8 HallHead;
+				;21	
+				;22	unsigned char AXCRC,AXSUM;
+				;23	unsigned char HallCRC,HallSUM;
+				;24	u8 HallData;
+				;25	u8 HallCount = 0;
+				;26	u16 XArr[5],ADx,XArrAvg=0;
+				;27	
+				;28	#define led _pb6
+				;29	#define ledc _pbc6
+				;30	#define led2 _pb7
+				;31	#define ledc2 _pbc7
+				;32	
+				;33	#define  SW_P0			_pe0
+				;34	#define	 SW_P1 		    _pe1
+				;35	#define  SW_P0C			_pec0
+				;36	#define	 SW_P1C			_pec1
+				;37	#define  SW_P0PU		_pepu0
+				;38	#define	 SW_P1PU		_pepu1		
+				;39	
+				;40	u8 SEC,R1sec,AD10ms,Hall200ms,Whell,Whell100ms,i;
+				;41	s16 temp,Index,auto1;
+				;42	u16 XArrSort[5],tempx;
+				;43	//				;44	void TM_Set();  	  //				;45	void Interrupt_Set(); //				;46	void Moto_Set();	  //				;47	void Moto_C(u8 angle);//				;48	void AD_Set();		  //AD				;49	void Delay100us(u16);
+				;50	void delay_ms(unsigned char);
+				;51	void UARTTxData(u8);
+				;52	void TranHall();
+				;53	void TranAxis();
+				;54	void XArrayAvg();
+				;55	void XArrayPut();
+				;56	void XArraySort();
+				;57	
+				;58	void main()
+				;59	{	
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	283C	jmp     begin_startup_value
+0002	0000	nop
+0003	0000	nop
+				startupend3:
+				@start .SECTION 'CODE'
+0076	0F00	mov     a, 0H
+0077	008B	mov     BP, a
+0078	2943	jmp     _main
+				;60		_TX=1; _TXC=0;  //_TX				_main:
+				_main:
+0143	309A	set     PC1
+0144	349B	clr     PCC1
+				;61	    _wdtc = 0xab;   //0145	0FAB	mov     a, ABH
+0146	00BE	mov     WDTC, a
+				;62		Head = 3;
+0147	0F03	mov     a, 3H
+0148	40A8	mov     Head[0], a
+				;63		HallHead = 85;
+0149	0F55	mov     a, 55H
+014A	40A7	mov     HallHead[0], a
+				;64		//ledc=0;
+				;65		_wdtc = 0xab; 
+014B	0FAB	mov     a, ABH
+014C	00BE	mov     WDTC, a
+				;66		AD10ms=1; Whell=0; Whell100ms=50;
+014D	0F01	mov     a, 1H
+014E	409C	mov     AD10ms[0], a
+014F	5F2E	clr     Whell[0]
+0150	0F32	mov     a, 32H
+0151	40AD	mov     Whell100ms[0], a
+				;67		TM_Set();
+0152	2124	call    _TM_Set
+				;68		Interrupt_Set();
+0153	2117	call    _Interrupt_Set
+				;69		Moto_Set();
+0154	2109	call    _Moto_Set
+				;70		AD_Set();
+0155	2027	call    _AD_Set
+				;71		_emi=1;								//0156	3030	set     EMI
+				;72		//Moto_C(107);
+				;73		auto1=1;
+0157	0F01	mov     a, 1H
+0158	40A9	mov     auto1[0], a
+0159	5F2A	clr     auto1[1]
+				;74		while(1)
+				;75		{
+				;76			
+				;77			TranAxis();
+				_L31:
+015A	20F7	call    _TranAxis
+				;78			TranHall();
+015B	2022	call    _TranHall
+015C	295A	jmp     _L31
+015D	295D	jmp     $
+				;79		/*	if(auto1==0){
+				;80				Moto_C(107);
+				;81				delay_ms(100);
+				;82				Moto_C(135);
+				;83				delay_ms(100);
+				;84			}
+				;85			if(!SW_P0){
+				;86				auto1=1;
+				;87				Moto_C(107);
+				;88			}
+				;89			if(!SW_P1){
+				;90				auto1=0;
+				;91			}*/
+				;92			
+				;93		}
+				;94	}
+				;95	
+				;96	void TM_Set(){
+				;97		_tm4c0=0b00100000;
+				_TM_Set:
+				_TM_Set:
+0124	0F20	mov     a, 20H
+0125	80D0	lmov    TM4C0, a
+				;98		_tm4c1=0b11000001;
+0127	0FC1	mov     a, C1H
+0128	80D1	lmov    TM4C1, a
+				;99		_tm4al=5000%256; _tm4ah=5000/256;
+012A	0F88	mov     a, 88H
+012B	80D4	lmov    TM4AL, a
+012D	0F13	mov     a, 13H
+012E	80D5	lmov    TM4AH, a
+				;100		_tm0c0=0b00010000;	//For Bit Rate,fINT=fSYS
+0130	0F10	mov     a, 10H
+0131	00DE	mov     TM0C0, a
+				;101		_tm0c1=0b11000001;	//T/C, TM0A Match Clear
+0132	0FC1	mov     a, C1H
+0133	00DF	mov     TM0C1, a
+				;102		_tm2c0=0; _tm2c1=0b00110001;	//STM:0134	1F51	clr     TM2C0
+0135	0F31	mov     a, 31H
+0136	00D2	mov     TM2C1, a
+				;103		_mf4e=1; _t4ae=1;
+0137	3133	set     MF4E
+0138	30B8	set     T4AE
+				;104		_t4on=1;
+0139	B1D0	lset    T4ON
+				;105		SEC=0; R1sec=100; AD10ms=1; Hall200ms=20;
+013B	5F1F	clr     SEC[0]
+013C	0F64	mov     a, 64H
+013D	409E	mov     R1sec[0], a
+013E	0F01	mov     a, 1H
+013F	409C	mov     AD10ms[0], a
+0140	0F14	mov     a, 14H
+0141	409D	mov     Hall200ms[0], a
+0142	0003	ret
+				;106	}
+				;107	
+				;108	void Interrupt_Set(){
+				;109		_pac3=1; _papu3=1;
+				_Interrupt_Set:
+				_Interrupt_Set:
+0117	3193	set     PAC3
+0118	3191	set     PAPU3
+				;110		_pac4=1; _papu4=1;
+0119	3213	set     PAC4
+011A	3211	set     PAPU4
+				;111		_integ=0b00000110; //INT0011B	0F06	mov     a, 6H
+011C	00B9	mov     INTEG, a
+				;112		_int0e=1;
+011D	30B0	set     INT0E
+				;113		_ifs0=0x00;
+011E	9F48	lclr    IFS0
+				;114		_int1e=1;
+0120	3130	set     INT1E
+				;115		_ifs1=0x00;
+0121	9F49	lclr    IFS1
+0123	0003	ret
+				;116	}
+				;117	
+				;118	void Moto_Set(){			//				;119		SW_P0C=1; SW_P0PU=1;	//				_Moto_Set:
+				_Moto_Set:
+0109	3023	set     PEC0
+010A	3021	set     PEPU0
+				;120		SW_P1C=1; SW_P1PU=1;
+010B	30A3	set     PEC1
+010C	30A1	set     PEPU1
+				;121		_pds2=0x01;				//010D	0F01	mov     a, 1H
+010E	80EE	lmov    PDS2, a
+				;122		_tm2c0=0b00000000;
+0110	1F51	clr     TM2C0
+				;123		_tm2c1=0b10101000;
+0111	0FA8	mov     a, A8H
+0112	00D2	mov     TM2C1, a
+				;124		_tm2rp=160;
+0113	0FA0	mov     a, A0H
+0114	00D7	mov     TM2RP, a
+				;125		_t2on=1;
+0115	31D1	set     T2ON
+0116	0003	ret
+				;126	}
+				;127	
+				;128	void Moto_C(u8 angle){
+				;129			temp=Index*20+1000;
+				;130			_tm2al=temp%256;
+				;131			_tm2ah=temp/256;
+				;132			temp>>=1;
+				;133			Index=angle;
+				;134	}
+				;135	
+				;136	void AD_Set(){
+				;137		_adcr0=0b00000001;							//				_AD_Set:
+				_AD_Set:
+0027	0F01	mov     a, 1H
+0028	00E8	mov     ADCR0, a
+				;138		_adcr1=0b01100110;							//A/D Clock=fSYS/64,VREFS=0
+0029	0F66	mov     a, 66H
+002A	00E9	mov     ADCR1, a
+				;139		_pas0=0b00110000;							//002B	0F30	mov     a, 30H
+002C	80E0	lmov    PAS0, a
+				;140		_pas3=0b00000011;							//002E	0F03	mov     a, 3H
+002F	80E3	lmov    PAS3, a
+0031	0003	ret
+				L0032:
+0032	1483	inc     MP1L
+				L0033:
+0033	0702	mov     a, [02H]
+0034	0003	ret
+0035	0000	nop
+0036	0000	nop
+0037	0000	nop
+				;141		//_ade=1;									//				;142	}
+				;143	
+				;144	DEFINE_ISR(button_up,0x04){		//INT0 PA3				@button_up_code .SECTION 'CODE'
+0004	4084	mov     r104, a
+0005	070B	mov     a, BP
+0006	1F0B	clr     BP
+0007	280C	jmp     _button_up
+				@dummy8 .SECTION 'CODE'
+				_button_up:
+				_button_up:
+000C	4085	mov     r204, a
+000D	070A	mov     a, STATUS
+000E	40C8	mov     r304, a
+				;145		HallCount++;
+000F	5498	inc     HallCount[0]
+				;146		_int0f = 0;	
+0010	3630	clr     INT0F
+0011	4705	mov     a, r204
+0012	008B	mov     BP, a
+0013	4748	mov     a, r304
+0014	008A	mov     STATUS, a
+0015	4704	mov     a, r104
+0016	0004	reti
+				;147	}
+				;148	
+				;149	
+				;150	DEFINE_ISR(Button_Down,0x08){	//INT1 PA4				@Button_Down_code .SECTION 'CODE'
+				@dummy4 .SECTION 'CODE'
+0008	4086	mov     r108, a
+0009	070B	mov     a, BP
+000A	1F0B	clr     BP
+000B	2817	jmp     _Button_Down
+				_Button_Down:
+				_Button_Down:
+0017	4087	mov     r208, a
+0018	070A	mov     a, STATUS
+0019	40C9	mov     r308, a
+				;151		led2=1;
+001A	3396	set     PB7
+				;152		_int1f = 0;
+001B	36B0	clr     INT1F
+001C	4707	mov     a, r208
+001D	008B	mov     BP, a
+001E	4749	mov     a, r308
+001F	008A	mov     STATUS, a
+0020	4706	mov     a, r108
+0021	0004	reti
+				;153	}
+				;154	
+				;155	DEFINE_ISR(ISR_STM,0x38){		//				@ISR_STM_code .SECTION 'CODE'
+0038	4090	mov     r138, a
+0039	070B	mov     a, BP
+003A	1F0B	clr     BP
+003B	2879	jmp     _ISR_STM
+				_ISR_STM:
+				_ISR_STM:
+0079	4091	mov     r238, a
+007A	070A	mov     a, STATUS
+007B	40CA	mov     r338, a
+007C	0703	mov     a, MP1L
+007D	40CB	mov     r438, a
+007E	0704	mov     a, MP1H
+007F	40CC	mov     r538, a
+0080	0707	mov     a, TBLP
+0081	40CD	mov     r638, a
+0082	0709	mov     a, TBHP
+0083	40CE	mov     r738, a
+				;156		if(--AD10ms==0){
+0084	551C	deca    AD10ms[0]
+0085	4088	mov     ra38, a
+0086	5E08	snz     ra38
+0087	288B	jmp     _L47
+0088	4708	mov     a, ra38
+0089	409C	mov     AD10ms[0], a
+008A	2894	jmp     _L48
+				;157			AD10ms=2;
+				_L47:
+008B	0F02	mov     a, 2H
+008C	409C	mov     AD10ms[0], a
+				;158			_start=1; _start=0;						//008D	33E8	set     START
+008E	37E8	clr     START
+				;159			GCC_NOP();
+008F	0000	nop
+				;160			AxisX = _adrl;
+0090	076A	mov     a, ADRL
+0091	40A0	mov     AxisX[0], a
+				;161			XArrayPut();
+0092	21DA	call    _XArrayPut
+				;162			XArraySort();
+0093	215E	call    _XArraySort
+				;163		}
+				;164		if(--Hall200ms==0){
+				_L48:
+0094	551D	deca    Hall200ms[0]
+0095	4088	mov     ra38, a
+0096	4708	mov     a, ra38
+0097	409D	mov     Hall200ms[0], a
+0098	5088	sz      ra38
+0099	289F	jmp     _L49
+				;165			HallData = HallCount;
+009A	4718	mov     a, HallCount[0]
+009B	40A5	mov     HallData[0], a
+				;166			HallCount = 0;
+009C	5F18	clr     HallCount[0]
+				;167			Hall200ms=20;
+009D	0F14	mov     a, 14H
+009E	409D	mov     Hall200ms[0], a
+				;168		}
+				;169		if(--R1sec==0){	
+				_L49:
+009F	551E	deca    R1sec[0]
+00A0	4088	mov     ra38, a
+00A1	4708	mov     a, ra38
+00A2	409E	mov     R1sec[0], a
+00A3	5088	sz      ra38
+00A4	28B2	jmp     _L51
+				;170			R1sec=100;
+00A5	0F64	mov     a, 64H
+00A6	409E	mov     R1sec[0], a
+				;171			led=1;
+00A7	3316	set     PB6
+				;172	
+				;173			if(++SEC==5)
+00A8	541F	inca    SEC[0]
+00A9	4088	mov     ra38, a
+00AA	4708	mov     a, ra38
+00AB	409F	mov     SEC[0], a
+00AC	4708	mov     a, ra38
+00AD	0A05	sub     a, 5H
+00AE	390A	snz     Z
+00AF	28B2	jmp     _L51
+				;174			{
+				;175				SEC=0;
+00B0	5F1F	clr     SEC[0]
+				;176				led=0;
+00B1	3716	clr     PB6
+				;177				
+				;178			}
+				;179		}
+				;180		_t4af=0;
+				_L51:
+00B2	36B8	clr     T4AF
+00B3	4711	mov     a, r238
+00B4	008B	mov     BP, a
+00B5	474A	mov     a, r338
+00B6	008A	mov     STATUS, a
+00B7	474B	mov     a, r438
+00B8	0083	mov     MP1L, a
+00B9	474C	mov     a, r538
+00BA	0084	mov     MP1H, a
+00BB	474D	mov     a, r638
+00BC	0087	mov     TBLP, a
+00BD	474E	mov     a, r738
+00BE	0089	mov     TBHP, a
+00BF	1D05	tabrd   ACC
+00C0	4710	mov     a, r138
+00C1	0004	reti
+				startup_value:
+				@ROMDATA_BASE .SECTION 'CODE'
+00C2	0003	ret
+00C3	0098	mov     __pb[2], a
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+				@ROMDATA_BASE .SECTION 'CODE'
+00C4	0000	nop
+00C5	0000	nop
+00C6	0000	nop
+00C7	0000	nop
+00C8	0000	nop
+00C9	0000	nop
+				;181	}
+				;182	
+				;183	void Delay100us(u16 del){
+				;184		u16 a,k;;
+				;185		for(a=0;a<del;a++)
+				;186			for(k=0;k<=25;k++)
+				;187				GCC_NOP();
+				;188	}
+				;189	
+				;190	void delay_ms(unsigned char del){	
+				;191		unsigned char a;
+				;192		for(a=0;a<del;a++) 
+				;193			GCC_DELAY(2000);		//				;194	}
+				;195	
+				;196	void UARTTxData(u8 data)
+				;197	{	u8 temp=0b00000001;
+				_UARTTxData:
+				_UARTTxData:
+00CA	4097	mov     data[0], a
+00D6	0F01	mov     a, 1H
+00D7	4080	mov     ra, a
+				;198		_tm0al=BITC%256; _tm0ah=BITC/256;				//T
+00CB	0F41	mov     a, 41H
+00CC	00E2	mov     TM0AL, a
+00CD	0F03	mov     a, 3H
+00CE	00E3	mov     TM0AH, a
+				;199		_TX=0;											//00CF	349A	clr     PC1
+				;200		_t0on=1;
+00D0	31DE	set     T0ON
+				;201		_t0af=0;
+00D1	36B4	clr     T0AF
+				;202		while(!_t0af);									//				L00D2:
+00D2	3AB4	snz     T0AF
+00D3	28D2	jmp     L00D2
+				;203		_t0af=0;
+00D4	36B4	clr     T0AF
+00D5	5F01	clr     rb
+				;204		do 
+				;205		{	_TX=(data & temp)? 1 : 0 ;	  				//				L00D8:
+00D8	4700	mov     a, ra
+00D9	4617	and     a, data[0]
+00DA	4082	mov     rc, a
+00DB	0F00	mov     a, 0H
+00DC	4202	sub     a, rc
+00DD	4083	mov     rd, a
+00DE	4703	mov     a, rd
+00DF	4582	orm     a, rc
+00E0	5A82	rlc     rc
+00E1	5F02	clr     rc
+00E2	5A82	rlc     rc
+00E3	4702	mov     a, rc
+00E4	4382	addm    a, rc
+00E5	349A	clr     PC1
+00E6	4702	mov     a, rc
+00E7	059A	orm     a, PC
+				;206			while(!_t0af);								//				L00E8:
+00E8	3AB4	snz     T0AF
+00E9	28E8	jmp     L00E8
+				;207			_t0af=0;
+00EA	36B4	clr     T0AF
+				;208			temp<<=1;
+00EB	4700	mov     a, ra
+00EC	4380	addm    a, ra
+00ED	5481	inc     rb
+				;209		} while (temp);	
+00EE	4701	mov     a, rb
+00EF	0A08	sub     a, 8H
+00F0	390A	snz     Z
+00F1	28D8	jmp     L00D8
+				;210		_TX=1;											//00F2	309A	set     PC1
+				;211		while(!_t0af);
+				L00F3:
+00F3	3AB4	snz     T0AF
+00F4	28F3	jmp     L00F3
+				;212		_t0on=0;
+00F5	35DE	clr     T0ON
+00F6	0003	ret
+				;213	}
+				;214	
+				;215	void TranAxis(void)
+				;216	{
+				;217		AXSUM = AxisX + Head;
+				_TranAxis:
+				_TranAxis:
+00F7	4728	mov     a, Head[0]
+00F8	4080	mov     ra, a
+00F9	4700	mov     a, ra
+00FA	4320	add     a, AxisX[0]
+00FB	4081	mov     rb, a
+00FC	4701	mov     a, rb
+00FD	40AF	mov     AXSUM[0], a
+				;218		AXCRC = ~AXSUM;
+00FE	4101	cpla    rb
+00FF	4081	mov     rb, a
+				;219		AXCRC++;
+0100	5401	inca    rb
+0101	40A6	mov     AXCRC[0], a
+				;220		UARTTxData(Head);
+0102	4700	mov     a, ra
+0103	20CA	call    _UARTTxData
+				;221		UARTTxData(XArrSort[2]);
+0104	473E	mov     a, XArrSort[4]
+0105	20CA	call    _UARTTxData
+				;222		UARTTxData(AXCRC);
+0106	4726	mov     a, AXCRC[0]
+0107	20CA	call    _UARTTxData
+0108	0003	ret
+				;223	}
+				;224	
+				;225	void TranHall(void)
+				;226	{
+				;227		
+				;228		//HallSUM = HallData + HallHead;
+				;229		//HallCRC = ~HallSUM + Head;   ///				;230		//HallCRC++;
+				;231		UARTTxData(HallHead);
+				_TranHall:
+				_TranHall:
+0022	4727	mov     a, HallHead[0]
+0023	20CA	call    _UARTTxData
+				;232		UARTTxData(HallData);
+0024	4725	mov     a, HallData[0]
+0025	20CA	call    _UARTTxData
+0026	0003	ret
+				;233		//UARTTxData(HallCRC);
+				;234	}
+				;235	
+				;236	void XArrayAvg(){
+				;237	 u16 sum=0;
+				;238	 for(i=0;i<5;i++){
+				;239	  sum+=XArr[i];
+				;240	 }
+				;241	 XArrAvg=sum/5;
+				;242	}
+				;243	
+				;244	void XArrayPut(){
+				;245	 for(i=5;i>0;i--){
+				_XArrayPut:
+				_XArrayPut:
+01DA	0F05	mov     a, 5H
+01DB	409B	mov     i[0], a
+01DC	0F05	mov     a, 5H
+01DD	4088	mov     ra38, a
+01FE	5788	sdz     ra38
+01FF	29DE	jmp     _L36
+0200	5F1B	clr     i[0]
+				;246	  XArr[i]=XArr[i-1];
+				_L36:
+01DE	4708	mov     a, ra38
+01DF	4089	mov     rb38, a
+01E0	5F0A	clr     rc38
+01E1	340A	clr     C
+01E2	5A09	rlca    rb38
+01E3	408B	mov     rd38, a
+01E4	5A0A	rlca    rc38
+01E5	408C	mov     re38, a
+01E6	0FAE	mov     a, AEH
+01E7	430B	add     a, rd38
+01E8	0083	mov     MP1L, a
+01E9	0F00	mov     a, 0H
+01EA	530C	adc     a, re38
+01EB	0084	mov     MP1H, a
+01EC	2033	call    L0033
+01ED	408B	mov     rd38, a
+01EE	2032	call    L0032
+01EF	408C	mov     re38, a
+01F0	340A	clr     C
+01F1	5A89	rlc     rb38
+01F2	5A8A	rlc     rc38
+01F3	0FB0	mov     a, B0H
+01F4	4309	add     a, rb38
+01F5	0083	mov     MP1L, a
+01F6	0F00	mov     a, 0H
+01F7	530A	adc     a, rc38
+01F8	0084	mov     MP1H, a
+01F9	470B	mov     a, rd38
+01FA	0082	mov     [02H], a
+01FB	1483	inc     MP1L
+01FC	470C	mov     a, re38
+01FD	0082	mov     [02H], a
+				;247	 }
+				;248	 XArr[0]=AxisX;
+0201	4720	mov     a, AxisX[0]
+0202	40B0	mov     XArr[0], a
+0203	5F31	clr     XArr[1]
+0204	0003	ret
+				;249	}
+				;250	
+				;251	void XArraySort(){
+				;252		int j;
+				;253	 for(i=0;i<5;i++){
+				_XArraySort:
+				_XArraySort:
+015E	5F1B	clr     i[0]
+015F	5F08	clr     ra38
+017B	5488	inc     ra38
+017C	0F04	mov     a, 4H
+017D	4208	sub     a, ra38
+017E	3C0A	sz      C
+017F	2960	jmp     _L39
+				;254	  XArrSort[i]=XArr[i];
+				_L39:
+0160	4708	mov     a, ra38
+0161	4089	mov     rb38, a
+0162	5F0A	clr     rc38
+0163	340A	clr     C
+0164	5A89	rlc     rb38
+0165	5A8A	rlc     rc38
+0166	0FB0	mov     a, B0H
+0167	4309	add     a, rb38
+0168	0083	mov     MP1L, a
+0169	0F00	mov     a, 0H
+016A	530A	adc     a, rc38
+016B	0084	mov     MP1H, a
+016C	2033	call    L0033
+016D	408B	mov     rd38, a
+016E	2032	call    L0032
+016F	408C	mov     re38, a
+0170	0FBA	mov     a, BAH
+0171	4309	add     a, rb38
+0172	0083	mov     MP1L, a
+0173	0F00	mov     a, 0H
+0174	530A	adc     a, rc38
+0175	0084	mov     MP1H, a
+0176	470B	mov     a, rd38
+0177	0082	mov     [02H], a
+0178	1483	inc     MP1L
+0179	470C	mov     a, re38
+017A	0082	mov     [02H], a
+				;255	 }
+				;256	 for (i=0;i<5;i++) {
+0180	5F1B	clr     i[0]
+0181	4721	mov     a, tempx[0]
+				@dummy .SECTION 'CODE'
+0182	408D	mov     rh38, a
+0183	4722	mov     a, tempx[1]
+0184	4088	mov     ra38, a
+0185	5F12	clr     _XArraySort_2
+				_L41:
+0186	0F04	mov     a, 4H
+0187	4212	sub     a, _XArraySort_2
+0188	380A	snz     C
+0189	29D3	jmp     _L44
+018A	5F09	clr     rb38
+018B	5F0A	clr     rc38
+				;257	     for (j =0;j<5;j++) {
+				_L42:
+01CC	4709	mov     a, rb38
+01CD	0C05	xor     a, 5H
+01CE	450A	or      a, rc38
+01CF	390A	snz     Z
+01D0	298C	jmp     _L45
+01D1	5492	inc     _XArraySort_2
+01D2	2986	jmp     _L41
+				_L44:
+01D3	4712	mov     a, _XArraySort_2
+01D4	409B	mov     i[0], a
+01D5	470D	mov     a, rh38
+01D6	40A1	mov     tempx[0], a
+01D7	4708	mov     a, ra38
+01D8	40A2	mov     tempx[1], a
+01D9	0003	ret
+				;258	        if (XArrSort[j+1] < XArrSort[j]) {
+				_L45:
+018C	5489	inc     rb38
+018D	3D0A	sz      Z
+018E	548A	inc     rc38
+018F	340A	clr     C
+0190	5A09	rlca    rb38
+0191	408B	mov     rd38, a
+0192	5A0A	rlca    rc38
+0193	408C	mov     re38, a
+0194	0FBA	mov     a, BAH
+0195	430B	add     a, rd38
+0196	408E	mov     rf38, a
+0197	0F00	mov     a, 0H
+0198	530C	adc     a, re38
+0199	408F	mov     rg38, a
+019A	470E	mov     a, rf38
+019B	0083	mov     MP1L, a
+019C	470F	mov     a, rg38
+019D	0084	mov     MP1H, a
+019E	2033	call    L0033
+019F	4093	mov     _XArraySort_2[1], a
+01A0	2032	call    L0032
+01A1	4094	mov     _XArraySort_2[2], a
+01A2	0FFE	mov     a, FEH
+01A3	430E	add     a, rf38
+01A4	4095	mov     _XArraySort_2[3], a
+01A5	0FFF	mov     a, FFH
+01A6	530F	adc     a, rg38
+01A7	4096	mov     _XArraySort_2[4], a
+01A8	4715	mov     a, _XArraySort_2[3]
+01A9	0083	mov     MP1L, a
+01AA	4716	mov     a, _XArraySort_2[4]
+01AB	0084	mov     MP1H, a
+01AC	2033	call    L0033
+01AD	408B	mov     rd38, a
+01AE	2032	call    L0032
+01AF	408C	mov     re38, a
+01B0	4713	mov     a, _XArraySort_2[1]
+01B1	420B	sub     a, rd38
+01B2	4714	mov     a, _XArraySort_2[2]
+01B3	520C	sbc     a, re38
+01B4	3C0A	sz      C
+01B5	29CC	jmp     _L42
+				;259	          tempx = XArrSort[j];
+				;260	          XArrSort[j]=XArrSort[j+1];
+01B6	4715	mov     a, _XArraySort_2[3]
+01B7	0083	mov     MP1L, a
+01B8	4716	mov     a, _XArraySort_2[4]
+01B9	0084	mov     MP1H, a
+01BA	4713	mov     a, _XArraySort_2[1]
+01BB	0082	mov     [02H], a
+01BC	1483	inc     MP1L
+01BD	4714	mov     a, _XArraySort_2[2]
+01BE	0082	mov     [02H], a
+				;261	          XArrSort[j+1] =tempx;
+01BF	470E	mov     a, rf38
+01C0	0083	mov     MP1L, a
+01C1	470F	mov     a, rg38
+01C2	0084	mov     MP1H, a
+01C3	470B	mov     a, rd38
+01C4	0082	mov     [02H], a
+01C5	1483	inc     MP1L
+01C6	470C	mov     a, re38
+01C7	0082	mov     [02H], a
+01C8	470B	mov     a, rd38
+01C9	408D	mov     rh38, a
+01CA	470C	mov     a, re38
+01CB	4088	mov     ra38, a
+				;262	        }
+				;263	     }
+				;264	   }
+				;265	}
+				;file D:\Users\IIIT\Desktop\Hall\startup1_l.asm
+				;1	;;--------------------------------------------------------------;;
+				;2	;;    This file is part of the Holtek C Compiler V3 package     ;;
+				;3	;;    For the initialization of static linkage variables        ;;
+				;4	;;    Copyright (C) 2017 Holtek Semiconductor Inc.              ;;
+				;5	;;    Version: 1.07 (Above IDE3000 V7.94)                       ;;
+				;6	;;    Date:    2017/03/06                                        ;;
+				;7	;;--------------------------------------------------------------;;
+				;8	
+				;9	acc equ [05h]
+				;10	tblp equ [07h]
+				;11	tblh equ [08h]
+				;12	;;tbhp equ [09h] 
+				;13	r0 equ [00h]
+				;14	mp0 equ [01h]
+				;15	r1 equ [02h]
+				;16	mp1l equ [03h]
+				;17	mp1h equ [04h]
+				;18	z equ [0ah].2
+				;19	c equ [0ah].0
+				;20	
+				;21	ifndef tbhp
+				;22	tbhp equ [09h]
+				;23	endif
+				;24	 
+				;25	extern startup_value_1:near
+				;26	
+				;27	@start .section 'code'
+				;28	begin_startup_value:
+				;29	  mov a,low (offset startup_value_1) 
+				begin_startup_value:
+				@start .SECTION 'CODE'
+				@dummy56 .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+003C	0FC1	mov     a, C1H
+				;30	  mov tblp,a
+003D	0087	mov     TBLP, a
+				;31	  mov a,high (offset startup_value_1) 
+003E	0F00	mov     a, 0H
+				;32	  mov tbhp,a
+003F	0089	mov     TBHP, a
+				;33	next_table:
+				;34	  ;CLR WDT
+				;35	  inc tblp
+				next_table:
+0040	1487	inc     TBLP
+				;36	  sz z
+0041	3D0A	sz      Z
+				;37	  inc tbhp
+0042	1489	inc     TBHP
+				;38	ifdef USE_TABRDC
+				;39	  tabrdc mp0
+				;40	else
+				;41	  tabrd mp0
+0043	1D01	tabrd   MP0
+				;42	endif
+				;43	  sz mp0
+0044	1081	sz      MP0
+				;44	  jmp read_data
+0045	2847	jmp     read_data
+				;45	  jmp startupend1
+0046	285C	jmp     startupend1
+				;46	read_data:
+				;47	  inc tblp
+				read_data:
+0047	1487	inc     TBLP
+				;48	  sz z
+0048	3D0A	sz      Z
+				;49	  inc tbhp
+0049	1489	inc     TBHP
+				;50	ifdef USE_TABRDC
+				;51	  tabrdc mp1l
+				;52	else
+				;53	  tabrd mp1l
+004A	1D03	tabrd   MP1L
+				;54	endif
+				;55	  mov a,tblh
+004B	0708	mov     a, TBLH
+				;56	  mov mp1h,a
+004C	0084	mov     MP1H, a
+				;57	next_data:
+				;58	  inc tblp
+				next_data:
+004D	1487	inc     TBLP
+				;59	  sz z
+004E	3D0A	sz      Z
+				;60	  inc tbhp
+004F	1489	inc     TBHP
+				;61	ifdef USE_TABRDC
+				;62	  tabrdc acc
+				;63	else
+				;64	  tabrd acc
+0050	1D05	tabrd   ACC
+				;65	endif
+				;66	  mov r1,a
+0051	0082	mov     [02H], a
+				;67	  sdz mp0
+0052	1781	sdz     MP0
+				;68	  jmp $+2
+0053	2855	jmp     L0055
+				;69	  jmp next_table
+0054	2840	jmp     next_table
+				;70	  inc mp1l
+				L0055:
+0055	1483	inc     MP1L
+				;71	  mov a,tblh
+0056	0708	mov     a, TBLH
+				;72	  mov r1,a
+0057	0082	mov     [02H], a
+				;73	  inc mp1l
+0058	1483	inc     MP1L
+				;74	  sdz mp0
+0059	1781	sdz     MP0
+				;75	  jmp next_data
+005A	284D	jmp     next_data
+				;76	  jmp next_table
+005B	2840	jmp     next_table
+				;77	
+				;78	;end_startup_value:
+				;79	
+				;80	startupend1:
+				;81	ifndef Disable_Bit_Initial
+				;82		MOV A,high  bitdatasec1_start
+				startupend1:
+005C	0F00	mov     a, 0H
+				;83		MOV mp1h,a
+005D	0084	mov     MP1H, a
+				;84		MOV A,offset bitdatasec1_end
+005E	0F80	mov     a, 80H
+				;85		mov mp1l,A
+005F	0083	mov     MP1L, a
+				;86		dec mp1l
+0060	1583	dec     MP1L
+				;87		clr z
+0061	350A	clr     Z
+				;88		sub a,offset bitdatasec1_start
+0062	0A80	sub     a, 80H
+				;89		sz z
+0063	3D0A	sz      Z
+				;90		jmp startupend2
+0064	2869	jmp     startupend2
+				;91	L0005:
+				;92		set r1
+				L0005:
+0065	1F82	set     [02H]
+				;93		dec mp1l
+0066	1583	dec     MP1L
+				;94		sdz  acc
+0067	1785	sdz     ACC
+				;95		jmp L0005
+0068	2865	jmp     L0005
+				;96	
+				;97	startupend2:
+				;98		MOV A,high  bitdatasec0_start
+				startupend2:
+0069	0F00	mov     a, 0H
+				;99		MOV mp1h,a
+006A	0084	mov     MP1H, a
+				;100		MOV A,offset bitdatasec0_end
+006B	0F80	mov     a, 80H
+				;101		mov mp1l,A
+006C	0083	mov     MP1L, a
+				;102		dec mp1l
+006D	1583	dec     MP1L
+				;103		clr z
+006E	350A	clr     Z
+				;104		sub a,offset bitdatasec0_start
+006F	0A80	sub     a, 80H
+				;105		sz  z
+0070	3D0A	sz      Z
+				;106		jmp startupend3
+0071	2876	jmp     startupend3
+				;107	L0006:
+				;108		clr r1
+				L0006:
+0072	1F02	clr     [02H]
+				;109		dec mp1l
+0073	1583	dec     MP1L
+				;110		sdz  acc
+0074	1785	sdz     ACC
+				;111		jmp L0006
+0075	2872	jmp     L0006
+				;112	startupend3:
+				;113	endif		
+				;114	   
+				;115	@ROMDATA_BASE .SECTION com_l 'CODE'  
+				;116	startup_value:
+				;117	;;linker range the initial value table here
+				;118	
+				;119	@BITDATASEC1 .SECTION com_l 'DATA'  
+				;120	bitdatasec1_start:
+				;121	
+				;122	@BITDATASEC1 .SECTION com_e 'DATA'  
+				;123	bitdatasec1_end:
+				;124	
+				;125	@BITDATASEC .SECTION com_l 'DATA'  
+				;126	bitdatasec0_start:
+				;127	
+				;128	@BITDATASEC .SECTION com_e 'DATA'  
+				;129	bitdatasec0_end:
+				data .SECTION 'DATA'
+				__papu DB DUP (?) ; __papu
+				__pac DB DUP (?) ; __pac
+				__pb DB DUP (?) ; __pb
+				__pc DB DUP (?) ; __pc
+				__pcc DB DUP (?) ; __pcc
+				__pepu DB DUP (?) ; __pepu
+				__pec DB DUP (?) ; __pec
+				__intc0 DB DUP (?) ; __intc0
+				__intc3 DB DUP (?) ; __intc3
+				__mfi0 DB DUP (?) ; __mfi0
+				__mfi4 DB DUP (?) ; __mfi4
+				__integ DB DUP (?) ; __integ
+				__wdtc DB DUP (?) ; __wdtc
+				__tm2c0 DB DUP (?) ; __tm2c0
+				__tm2c1 DB DUP (?) ; __tm2c1
+				__tm2al DB DUP (?) ; __tm2al
+				__tm2ah DB DUP (?) ; __tm2ah
+				__tm2rp DB DUP (?) ; __tm2rp
+				__tm0c0 DB DUP (?) ; __tm0c0
+				__tm0c1 DB DUP (?) ; __tm0c1
+				__tm0al DB DUP (?) ; __tm0al
+				__tm0ah DB DUP (?) ; __tm0ah
+				__adcr0 DB DUP (?) ; __adcr0
+				__adcr1 DB DUP (?) ; __adcr1
+				__adrl DB DUP (?) ; __adrl
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				rd DB DUP (?)
+				r104 DB DUP (?)
+				r204 DB DUP (?)
+				r108 DB DUP (?)
+				r208 DB DUP (?)
+				ra38 DB DUP (?)
+				rb38 DB DUP (?)
+				rc38 DB DUP (?)
+				rd38 DB DUP (?)
+				re38 DB DUP (?)
+				rh38 DB DUP (?)
+				rf38 DB DUP (?)
+				rg38 DB DUP (?)
+				r138 DB DUP (?)
+				r238 DB DUP (?)
+				_XArraySort_2 DB DUP (?)
+				data DB DUP (?) ; data
+				HallCount DB DUP (?) ; HallCount
+				XArrAvg DB 2 DUP (?) ; XArrAvg
+				i DB DUP (?) ; i
+				AD10ms DB DUP (?) ; AD10ms
+				Hall200ms DB DUP (?) ; Hall200ms
+				R1sec DB DUP (?) ; R1sec
+				SEC DB DUP (?) ; SEC
+				AxisX DB DUP (?) ; AxisX
+				tempx DB 2 DUP (?) ; tempx
+				Index DB 2 DUP (?) ; Index
+				HallData DB DUP (?) ; HallData
+				AXCRC DB DUP (?) ; AXCRC
+				HallHead DB DUP (?) ; HallHead
+				Head DB DUP (?) ; Head
+				auto1 DB 2 DUP (?) ; auto1
+				temp DB 2 DUP (?) ; temp
+				Whell100ms DB DUP (?) ; Whell100ms
+				Whell DB DUP (?) ; Whell
+				AXSUM DB DUP (?) ; AXSUM
+				XArr DB DUP (?) ; XArr
+				XArrSort DB DUP (?) ; XArrSort
+				ADx DB 2 DUP (?) ; ADx
+				HallSUM DB DUP (?) ; HallSUM
+				HallCRC DB DUP (?) ; HallCRC
+				r304 DB DUP (?)
+				r308 DB DUP (?)
+				r338 DB DUP (?)
+				r438 DB DUP (?)
+				r538 DB DUP (?)
+				r638 DB DUP (?)
+				r738 DB DUP (?)
+				__ifs0 DB DUP (?) ; __ifs0
+				__ifs1 DB DUP (?) ; __ifs1
+				__tm4c0 DB DUP (?) ; __tm4c0
+				__tm4c1 DB DUP (?) ; __tm4c1
+				__tm4al DB DUP (?) ; __tm4al
+				__tm4ah DB DUP (?) ; __tm4ah
+				__pas0 DB DUP (?) ; __pas0
+				__pas3 DB DUP (?) ; __pas3
+				__pds2 DB DUP (?) ; __pds2
