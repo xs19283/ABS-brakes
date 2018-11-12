@@ -1,0 +1,5122 @@
+				;file D:\Users\IIIT\Desktop\DATATRAN\Sevro_TM_button.c
+				;1	#include "HT66F70A.h"
+				;2	#include <stdlib.h>
+				;3	#include <math.h>
+				;4	
+				;5	#define fsys 8000000                             //				;6	#define	_TX			_pc1
+				;7	#define	_TXC		_pcc1
+				;8	#define	_RX			_pc3
+				;9	#define	_RXC		_pcc3			
+				;10	#define	fSYS		8000000	
+				;11	#define	BaudRate	9600	
+				;12	#define	BITC		(fSYS/BaudRate)					//Bit Interval Time Constant
+				;13	
+				;14	typedef	unsigned char	u8;
+				;15	typedef	char			s8;
+				;16	typedef	unsigned short	u16;
+				;17	typedef	short			s16;
+				;18	typedef	unsigned long	u32;
+				;19	typedef	long			s32;
+				;20	u8 AxisXH;
+				;21	u8 AxisXL;
+				;22	u8 SendXH;
+				;23	u8 SendXL;
+				;24	u16 AxisX;
+				;25	u8 Head;
+				;26	u8 HallHead;
+				;27	u8 Axcount=0;
+				;28	u8 Hacount=0;
+				;29	
+				;30	unsigned char AXCRC,AXSUM;
+				;31	unsigned char HallCRC,HallSUM;
+				;32	u8 HallData = 0;
+				;33	u8 HallCount = 0;
+				;34	u16 XArr[5],ADx,XArrAvg=0;
+				;35	
+				;36	#define led _pb6
+				;37	#define ledc _pbc6
+				;38	#define led2 _pb7
+				;39	#define ledc2 _pbc7
+				;40	
+				;41	#define  SW_P0			_pe0
+				;42	#define	 SW_P1 		    _pe1
+				;43	#define  SW_P0C			_pec0
+				;44	#define	 SW_P1C			_pec1
+				;45	#define  SW_P0PU		_pepu0
+				;46	#define	 SW_P1PU		_pepu1		
+				;47	
+				;48	u8 SEC,R1sec,AD10ms,Hall200ms,Whell,Whell100ms,i;
+				;49	s16 temp,Index,auto1;
+				;50	u16 XArrSort[5],tempx;
+				;51	u16 SendX = 0;
+				;52	//				;53	void TM_Set();  	  //				;54	void Interrupt_Set(); //				;55	void Moto_Set();	  //				;56	void Moto_C(u8 angle);//				;57	void AD_Set();		  //AD				;58	void Delay100us(u16);
+				;59	void delay_ms(unsigned char);
+				;60	void UARTTxData(u8);
+				;61	void TranHall();
+				;62	void TranAxis();
+				;63	void XArrayPut();
+				;64	void AxisCal();
+				;65	void PutValueArray(u16[]);
+				;66	void ShiftRightArray(u16[]);
+				;67	void VariancePulsByLoad(u16[]);
+				;68	
+				;69	void main()
+				;70	{	
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	283C	jmp     begin_startup_value
+0002	0000	nop
+0003	0000	nop
+				startupend3:
+				@start .SECTION 'CODE'
+0076	0F00	mov     a, 0H
+0077	008B	mov     BP, a
+0078	A8DE	jmp     _main
+				L0079:
+0079	5A13	rlca    rh[12]
+007A	5A0F	rlca    rh[8]
+007B	5A8C	rlc     rh[5]
+007C	4094	mov     rh[13], a
+007D	5F0F	clr     rh[8]
+007E	7393	set     rh[12].7
+007F	5094	sz      rh[13]
+0080	2884	jmp     L0084
+0081	5F11	clr     rh[10]
+0082	5F12	clr     rh[11]
+0083	5F13	clr     rh[12]
+				L0084:
+0084	5A0A	rlca    rh[3]
+0085	5A0E	rlca    rh[7]
+0086	5A8C	rlc     rh[5]
+0087	408B	mov     rh[4], a
+0088	5F0E	clr     rh[7]
+0089	738A	set     rh[3].7
+008A	508B	sz      rh[4]
+008B	0003	ret
+				L008C:
+008C	5F08	clr     rh[1]
+008D	5F09	clr     rh[2]
+008E	5F0A	clr     rh[3]
+				L008F:
+008F	5F0E	clr     rh[7]
+0090	0003	ret
+				L0091:
+0091	2084	call    L0084
+0092	470B	mov     a, rh[4]
+0093	0A7F	sub     a, 7FH
+0094	380A	snz     C
+0095	288C	jmp     L008C
+0096	0A17	sub     a, 17H
+0097	408B	mov     rh[4], a
+0098	380A	snz     C
+0099	28A8	jmp     L00A8
+009A	0F18	mov     a, 18H
+009B	420B	sub     a, rh[4]
+009C	380A	snz     C
+009D	288C	jmp     L008C
+009E	28A5	jmp     L00A5
+				L009F:
+009F	558B	dec     rh[4]
+00A0	340A	clr     C
+00A1	5A88	rlc     rh[1]
+00A2	5A89	rlc     rh[2]
+00A3	5A8A	rlc     rh[3]
+00A4	5A8E	rlc     rh[7]
+				L00A5:
+00A5	508B	sz      rh[4]
+00A6	289F	jmp     L009F
+00A7	28AE	jmp     L00AE
+				L00A8:
+00A8	340A	clr     C
+00A9	5B8A	rrc     rh[3]
+00AA	5B89	rrc     rh[2]
+00AB	5B88	rrc     rh[1]
+00AC	1685	siz     ACC
+00AD	28A8	jmp     L00A8
+				L00AE:
+00AE	780C	snz     rh[5].0
+00AF	28BB	jmp     L00BB
+00B0	4188	cpl     rh[1]
+00B1	4189	cpl     rh[2]
+00B2	418A	cpl     rh[3]
+00B3	418E	cpl     rh[7]
+00B4	5488	inc     rh[1]
+00B5	3D0A	sz      Z
+00B6	5489	inc     rh[2]
+00B7	3D0A	sz      Z
+00B8	548A	inc     rh[3]
+00B9	3D0A	sz      Z
+00BA	548E	inc     rh[7]
+				L00BB:
+00BB	0003	ret
+				L00BC:
+00BC	508B	sz      rh[4]
+00BD	28BF	jmp     L00BF
+00BE	288C	jmp     L008C
+				L00BF:
+00BF	508E	sz      rh[7]
+00C0	28D6	jmp     L00D6
+00C1	4708	mov     a, rh[1]
+00C2	4509	or      a, rh[2]
+00C3	450A	or      a, rh[3]
+00C4	3D0A	sz      Z
+00C5	288F	jmp     L008F
+				L00C6:
+00C6	7F8A	sz      rh[3].7
+00C7	28E7	jmp     L00E7
+00C8	578B	sdz     rh[4]
+00C9	28CC	jmp     L00CC
+00CA	700D	set     rh[6].0
+00CB	288C	jmp     L008C
+				L00CC:
+00CC	340A	clr     C
+00CD	5A88	rlc     rh[1]
+00CE	5A89	rlc     rh[2]
+00CF	5A8A	rlc     rh[3]
+00D0	28C6	jmp     L00C6
+				L00D1:
+00D1	340A	clr     C
+00D2	5B8E	rrc     rh[7]
+00D3	5B8A	rrc     rh[3]
+00D4	5B89	rrc     rh[2]
+00D5	5B88	rrc     rh[1]
+				L00D6:
+00D6	548B	inc     rh[4]
+00D7	560B	siza    rh[4]
+00D8	28DB	jmp     L00DB
+00D9	708D	set     rh[6].1
+00DA	28F0	jmp     L00F0
+				L00DB:
+00DB	570E	sdza    rh[7]
+00DC	28D1	jmp     L00D1
+00DD	300A	set     C
+00DE	5388	adcm    a, rh[1]
+00DF	5389	adcm    a, rh[2]
+00E0	538A	adcm    a, rh[3]
+00E1	3C0A	sz      C
+00E2	548B	inc     rh[4]
+00E3	5B8E	rrc     rh[7]
+00E4	5B8A	rrc     rh[3]
+00E5	5B89	rrc     rh[2]
+00E6	5B88	rrc     rh[1]
+				L00E7:
+00E7	508B	sz      rh[4]
+00E8	28EA	jmp     L00EA
+00E9	288C	jmp     L008C
+				L00EA:
+00EA	5B8C	rrc     rh[5]
+00EB	5B0B	rrca    rh[4]
+00EC	408E	mov     rh[7], a
+00ED	380A	snz     C
+00EE	778A	clr     rh[3].7
+00EF	0003	ret
+				L00F0:
+00F0	5F88	set     rh[1]
+00F1	5F89	set     rh[2]
+00F2	5F8A	set     rh[3]
+00F3	5F8E	set     rh[7]
+00F4	780C	snz     rh[5].0
+00F5	778E	clr     rh[7].7
+00F6	0003	ret
+				L00F7:
+00F7	0F80	mov     a, 80H
+00F8	448F	xorm    a, rh[8]
+				L00F9:
+00F9	2079	call    L0079
+				L00FA:
+00FA	4714	mov     a, rh[13]
+00FB	420B	sub     a, rh[4]
+00FC	3D0A	sz      Z
+00FD	290E	jmp     L010E
+00FE	380A	snz     C
+00FF	2907	jmp     L0107
+0100	340A	clr     C
+0101	5B8E	rrc     rh[7]
+0102	5B8A	rrc     rh[3]
+0103	5B89	rrc     rh[2]
+0104	5B88	rrc     rh[1]
+0105	548B	inc     rh[4]
+0106	28FA	jmp     L00FA
+				L0107:
+0107	340A	clr     C
+0108	5B8F	rrc     rh[8]
+0109	5B93	rrc     rh[12]
+010A	5B92	rrc     rh[11]
+010B	5B91	rrc     rh[10]
+010C	5494	inc     rh[13]
+010D	28FA	jmp     L00FA
+				L010E:
+010E	590C	rra     rh[5]
+010F	440C	xor     a, rh[5]
+0110	3805	snz     ACC.0
+0111	291D	jmp     L011D
+0112	4191	cpl     rh[10]
+0113	4192	cpl     rh[11]
+0114	4193	cpl     rh[12]
+0115	418F	cpl     rh[8]
+0116	5491	inc     rh[10]
+0117	3D0A	sz      Z
+0118	5492	inc     rh[11]
+0119	3D0A	sz      Z
+011A	5493	inc     rh[12]
+011B	3D0A	sz      Z
+011C	548F	inc     rh[8]
+				L011D:
+011D	4711	mov     a, rh[10]
+011E	4388	addm    a, rh[1]
+011F	4712	mov     a, rh[11]
+0120	5389	adcm    a, rh[2]
+0121	4713	mov     a, rh[12]
+0122	538A	adcm    a, rh[3]
+0123	470F	mov     a, rh[8]
+0124	538E	adcm    a, rh[7]
+0125	7B8E	snz     rh[7].7
+0126	28BC	jmp     L00BC
+0127	4188	cpl     rh[1]
+0128	4189	cpl     rh[2]
+0129	418A	cpl     rh[3]
+012A	418E	cpl     rh[7]
+012B	5488	inc     rh[1]
+012C	3D0A	sz      Z
+012D	5489	inc     rh[2]
+012E	3D0A	sz      Z
+012F	548A	inc     rh[3]
+0130	3D0A	sz      Z
+0131	548E	inc     rh[7]
+0132	0F01	mov     a, 1H
+0133	448C	xorm    a, rh[5]
+0134	28BC	jmp     L00BC
+				L0135:
+0135	0F96	mov     a, 96H
+0136	408B	mov     rh[4], a
+0137	28BC	jmp     L00BC
+				L0138:
+0138	2079	call    L0079
+0139	5F15	clr     rh[14]
+013A	5F16	clr     rh[15]
+013B	5F17	clr     rh[16]
+013C	5F10	clr     rh[9]
+013D	0F7A	mov     a, 7AH
+013E	4314	add     a, rh[13]
+013F	438B	addm    a, rh[4]
+0140	5B0C	rrca    rh[5]
+0141	448C	xorm    a, rh[5]
+0142	0F07	mov     a, 7H
+0143	408F	mov     rh[8], a
+				L0144:
+0144	5B93	rrc     rh[12]
+0145	5B92	rrc     rh[11]
+0146	5B91	rrc     rh[10]
+0147	380A	snz     C
+0148	2951	jmp     L0151
+0149	4708	mov     a, rh[1]
+014A	4395	addm    a, rh[14]
+014B	4709	mov     a, rh[2]
+014C	5396	adcm    a, rh[15]
+014D	470A	mov     a, rh[3]
+014E	5397	adcm    a, rh[16]
+014F	470E	mov     a, rh[7]
+0150	5390	adcm    a, rh[9]
+				L0151:
+0151	340A	clr     C
+0152	5A88	rlc     rh[1]
+0153	5A89	rlc     rh[2]
+0154	5A8A	rlc     rh[3]
+0155	5A8E	rlc     rh[7]
+0156	578F	sdz     rh[8]
+0157	2944	jmp     L0144
+0158	0F11	mov     a, 11H
+0159	408F	mov     rh[8], a
+015A	2960	jmp     L0160
+				L015B:
+015B	340A	clr     C
+015C	5B90	rrc     rh[9]
+015D	5B97	rrc     rh[16]
+015E	5B96	rrc     rh[15]
+015F	5B95	rrc     rh[14]
+				L0160:
+0160	5B93	rrc     rh[12]
+0161	5B92	rrc     rh[11]
+0162	5B91	rrc     rh[10]
+0163	380A	snz     C
+0164	296D	jmp     L016D
+0165	4708	mov     a, rh[1]
+0166	4395	addm    a, rh[14]
+0167	4709	mov     a, rh[2]
+0168	5396	adcm    a, rh[15]
+0169	470A	mov     a, rh[3]
+016A	5397	adcm    a, rh[16]
+016B	470E	mov     a, rh[7]
+016C	5390	adcm    a, rh[9]
+				L016D:
+016D	578F	sdz     rh[8]
+016E	295B	jmp     L015B
+016F	4715	mov     a, rh[14]
+0170	4088	mov     rh[1], a
+0171	4716	mov     a, rh[15]
+0172	4089	mov     rh[2], a
+0173	4717	mov     a, rh[16]
+0174	408A	mov     rh[3], a
+0175	4710	mov     a, rh[9]
+0176	408E	mov     rh[7], a
+0177	28BC	jmp     L00BC
+				L0178:
+0178	2079	call    L0079
+0179	5F15	clr     rh[14]
+017A	5F16	clr     rh[15]
+017B	5F17	clr     rh[16]
+017C	5F10	clr     rh[9]
+017D	5094	sz      rh[13]
+017E	2981	jmp     L0181
+017F	710D	set     rh[6].2
+0180	29AB	jmp     L01AB
+				L0181:
+0181	500B	sza     rh[4]
+0182	2984	jmp     L0184
+0183	29AB	jmp     L01AB
+				L0184:
+0184	4214	sub     a, rh[13]
+0185	0B77	add     a, 77H
+0186	408B	mov     rh[4], a
+0187	5B0C	rrca    rh[5]
+0188	448C	xorm    a, rh[5]
+0189	0F20	mov     a, 20H
+018A	4094	mov     rh[13], a
+				L018B:
+018B	4708	mov     a, rh[1]
+018C	4211	sub     a, rh[10]
+018D	4709	mov     a, rh[2]
+018E	5212	sbc     a, rh[11]
+018F	470A	mov     a, rh[3]
+0190	5213	sbc     a, rh[12]
+0191	470E	mov     a, rh[7]
+0192	520F	sbc     a, rh[8]
+0193	380A	snz     C
+0194	29A0	jmp     L01A0
+0195	408E	mov     rh[7], a
+0196	4708	mov     a, rh[1]
+0197	4211	sub     a, rh[10]
+0198	4088	mov     rh[1], a
+0199	4709	mov     a, rh[2]
+019A	5212	sbc     a, rh[11]
+019B	4089	mov     rh[2], a
+019C	470A	mov     a, rh[3]
+019D	5213	sbc     a, rh[12]
+019E	408A	mov     rh[3], a
+019F	300A	set     C
+				L01A0:
+01A0	5A95	rlc     rh[14]
+01A1	5A96	rlc     rh[15]
+01A2	5A97	rlc     rh[16]
+01A3	5A90	rlc     rh[9]
+01A4	340A	clr     C
+01A5	5A88	rlc     rh[1]
+01A6	5A89	rlc     rh[2]
+01A7	5A8A	rlc     rh[3]
+01A8	5A8E	rlc     rh[7]
+01A9	5794	sdz     rh[13]
+01AA	298B	jmp     L018B
+				L01AB:
+01AB	4715	mov     a, rh[14]
+01AC	4088	mov     rh[1], a
+01AD	4716	mov     a, rh[15]
+01AE	4089	mov     rh[2], a
+01AF	4717	mov     a, rh[16]
+01B0	408A	mov     rh[3], a
+01B1	4710	mov     a, rh[9]
+01B2	408E	mov     rh[7], a
+01B3	28BC	jmp     L00BC
+				L01B4:
+01B4	740C	clr     rh[5].0
+01B5	7B89	snz     rh[2].7
+01B6	29BD	jmp     L01BD
+01B7	700C	set     rh[5].0
+01B8	4188	cpl     rh[1]
+01B9	4189	cpl     rh[2]
+01BA	5488	inc     rh[1]
+01BB	3D0A	sz      Z
+01BC	5489	inc     rh[2]
+				L01BD:
+01BD	5F0A	clr     rh[3]
+01BE	5F0E	clr     rh[7]
+01BF	0F96	mov     a, 96H
+01C0	408B	mov     rh[4], a
+01C1	28BC	jmp     L00BC
+01C2	0000	nop
+01C3	0000	nop
+01C4	0000	nop
+01C5	0000	nop
+				L01C6:
+01C6	0000	nop
+				L01C7:
+01C7	0000	nop
+01C8	1785	sdz     ACC
+01C9	29C7	jmp     L01C7
+				L01CA:
+01CA	0000	nop
+01CB	1785	sdz     ACC
+01CC	29CA	jmp     L01CA
+01CD	579D	sdz     Array
+01CE	29CA	jmp     L01CA
+01CF	0003	ret
+				;71		_TX=1; _TXC=0;  //_TX				_main:
+				_main:
+10DE	309A	set     PC1
+10DF	349B	clr     PCC1
+				;72	    _wdtc = 0xab;   //10E0	0FAB	mov     a, ABH
+10E1	00BE	mov     WDTC, a
+				;73		Head = 3;
+10E2	0F03	mov     a, 3H
+10E3	40E0	mov     Head[0], a
+				;74		HallHead = 85;
+10E4	0F55	mov     a, 55H
+10E5	40DF	mov     HallHead[0], a
+				;75		//ledc=0;
+				;76		_wdtc = 0xab; 
+10E6	0FAB	mov     a, ABH
+10E7	00BE	mov     WDTC, a
+				;77		AD10ms=1; Whell=0; Whell100ms=50;
+10E8	0F01	mov     a, 1H
+10E9	40D5	mov     AD10ms[0], a
+10EA	5F6A	clr     Whell[0]
+10EB	0F32	mov     a, 32H
+10EC	40E9	mov     Whell100ms[0], a
+				;78		TM_Set();
+10ED	A0BF	call    _TM_Set
+				;79		Interrupt_Set();
+10EE	A0B5	call    _Interrupt_Set
+				;80		Moto_Set();
+10EF	A0A7	call    _Moto_Set
+				;81		AD_Set();
+10F0	A09C	call    _AD_Set
+				;82		_emi=1;								//10F1	3030	set     EMI
+				;83		PutValueArray(XArr);
+10F2	0FED	mov     a, EDH
+10F3	409D	mov     Array, a
+10F4	0F00	mov     a, 0H
+10F5	409E	mov     del, a
+10F6	A07F	call    _PutValueArray
+				;84		Moto_C(107);
+10F7	0F6B	mov     a, 6BH
+10F8	A03A	call    _Moto_C
+				;85		auto1=1;
+10F9	0F01	mov     a, 1H
+10FA	40E5	mov     auto1[0], a
+10FB	5F66	clr     auto1[1]
+				;86		while(1)
+				;87		{
+				;88			AxisCal();
+				_L44:
+10FC	A030	call    _AxisCal
+				;89			ShiftRightArray(XArr);
+10FD	0FED	mov     a, EDH
+10FE	409D	mov     Array, a
+10FF	0F00	mov     a, 0H
+1100	409E	mov     del, a
+1101	67E1	call    _ShiftRightArray
+				;90			qsort(XArrSort, 5, sizeof(u16));
+1102	0F02	mov     a, 2H
+1103	C084	lmov    __pds2[22], a
+1105	DF05	lclr    __pds2[23]
+1107	0F05	mov     a, 5H
+1108	C082	lmov    __pds2[20], a
+110A	DF03	lclr    __pds2[21]
+110C	0F80	mov     a, 80H
+110D	C080	lmov    __pds2[18], a
+110F	0F02	mov     a, 2H
+1110	C081	lmov    __pds2[19], a
+1112	6649	call    L0E49
+				;91			VariancePulsByLoad(XArrSort);
+1113	0F80	mov     a, 80H
+1114	40C6	mov     SortArray, a
+1115	0F02	mov     a, 2H
+1116	40C7	mov     SortArray[1], a
+1117	6417	call    _VariancePulsByLoad
+				;92			TranAxis();
+1118	221E	call    _TranAxis
+				;93			GCC_NOP();
+1119	0000	nop
+				;94			TranHall();
+111A	220E	call    _TranHall
+				;95			GCC_NOP();
+111B	0000	nop
+				;96			if(_pa4)
+111C	3A12	snz     PA4
+111D	A8FC	jmp     _L44
+				;97			{
+				;98				if(SendX >= 150)
+111E	0F95	mov     a, 95H
+111F	424D	sub     a, SendX[0]
+1120	0F00	mov     a, 0H
+1121	524E	sbc     a, SendX[1]
+1122	3C0A	sz      C
+1123	A8FC	jmp     _L44
+				;99				{
+				;100					if(HallData < 4)
+1124	0F03	mov     a, 3H
+1125	424C	sub     a, HallData[0]
+1126	380A	snz     C
+1127	A8FC	jmp     _L44
+				;101					{
+				;102						Moto_C(107);
+1128	0F6B	mov     a, 6BH
+1129	A03A	call    _Moto_C
+				;103						delay_ms(100);
+112A	0F64	mov     a, 64H
+112B	21D0	call    _delay_ms
+				;104						Moto_C(135);
+112C	0F87	mov     a, 87H
+112D	A03A	call    _Moto_C
+				;105						delay_ms(100);
+112E	0F64	mov     a, 64H
+112F	21D0	call    _delay_ms
+1130	A8FC	jmp     _L44
+1131	A931	jmp     $
+1132	4727	mov     a, angle[4]
+1133	4528	or      a, angle[5]
+1134	3D0A	sz      Z
+1135	A994	jmp     L1194
+1136	0FFF	mov     a, FFH
+1137	4327	add     a, angle[4]
+1138	40B1	mov     angle[14], a
+1139	0FFF	mov     a, FFH
+113A	5328	adc     a, angle[5]
+113B	40B2	mov     angle[15], a
+113C	4723	mov     a, angle
+113D	0083	mov     MP1L, a
+113E	4724	mov     a, angle[1]
+113F	0084	mov     MP1H, a
+1140	6415	call    L0C15
+1141	40AF	mov     angle[12], a
+1142	6414	call    L0C14
+1143	40B0	mov     angle[13], a
+1144	5F2D	clr     angle[10]
+1145	5F2E	clr     angle[11]
+				L1146:
+1146	472D	mov     a, angle[10]
+1147	4331	add     a, angle[14]
+1148	4083	mov     rd, a
+1149	472E	mov     a, angle[11]
+114A	5332	adc     a, angle[15]
+114B	4084	mov     re, a
+114C	5804	rla     re
+114D	0E01	and     a, 1H
+114E	4080	mov     ra, a
+114F	4700	mov     a, ra
+1150	4383	addm    a, rd
+1151	3C0A	sz      C
+1152	5484	inc     re
+1153	5A04	rlca    re
+1154	5B84	rrc     re
+1155	5B83	rrc     rd
+1156	4703	mov     a, rd
+1157	409D	mov     Array, a
+1158	4704	mov     a, re
+1159	409E	mov     del, a
+115A	4729	mov     a, angle[6]
+115B	409F	mov     del[1], a
+115C	472A	mov     a, angle[7]
+115D	40A0	mov     del[2], a
+115E	64CE	call    L0CCE
+115F	4721	mov     a, del[3]
+1160	4081	mov     rb, a
+1161	4722	mov     a, del[4]
+1162	4082	mov     rc, a
+1163	4725	mov     a, angle[2]
+1164	4381	addm    a, rb
+1165	4726	mov     a, angle[3]
+1166	5382	adcm    a, rc
+1167	4701	mov     a, rb
+1168	0083	mov     MP1L, a
+1169	4702	mov     a, rc
+116A	0084	mov     MP1H, a
+116B	6415	call    L0C15
+116C	40AB	mov     angle[8], a
+116D	6414	call    L0C14
+116E	40AC	mov     angle[9], a
+116F	472F	mov     a, angle[12]
+1170	422B	sub     a, angle[8]
+1171	4085	mov     rf, a
+1172	4730	mov     a, angle[13]
+1173	522C	sbc     a, angle[9]
+1174	4086	mov     rg, a
+1175	4705	mov     a, rf
+1176	40AB	mov     angle[8], a
+1177	4706	mov     a, rg
+1178	40AC	mov     angle[9], a
+1179	4705	mov     a, rf
+117A	4506	or      a, rg
+117B	3D0A	sz      Z
+117C	A996	jmp     L1196
+117D	7B86	snz     rg.7
+117E	A986	jmp     L1186
+117F	0FFF	mov     a, FFH
+1180	4303	add     a, rd
+1181	40B1	mov     angle[14], a
+1182	0FFF	mov     a, FFH
+1183	5304	adc     a, re
+1184	40B2	mov     angle[15], a
+1185	A98C	jmp     L118C
+				L1186:
+1186	0F01	mov     a, 1H
+1187	4303	add     a, rd
+1188	40AD	mov     angle[10], a
+1189	0F00	mov     a, 0H
+118A	5304	adc     a, re
+118B	40AE	mov     angle[11], a
+				L118C:
+				@dummy .SECTION 'CODE'
+118C	7FB2	sz      angle[15].7
+118D	A994	jmp     L1194
+118E	4731	mov     a, angle[14]
+118F	422D	sub     a, angle[10]
+1190	4732	mov     a, angle[15]
+1191	522E	sbc     a, angle[11]
+1192	3B8A	snz     SC
+1193	A946	jmp     L1146
+				L1194:
+1194	5F01	clr     rb
+1195	5F02	clr     rc
+				L1196:
+1196	4701	mov     a, rb
+1197	4080	mov     ra, a
+1198	4702	mov     a, rc
+1199	4081	mov     rb, a
+119A	0003	ret
+				;106					//led2=1;
+				;107					}
+				;108				}
+				;109			}
+				;110		}
+				;111	}
+				;112	
+				;113	void TM_Set(){
+				;114		_tm4c0=0b00100000;
+				_TM_Set:
+				_TM_Set:
+10BF	0F20	mov     a, 20H
+10C0	80D0	lmov    TM4C0, a
+				;115		_tm4c1=0b11000001;
+10C2	0FC1	mov     a, C1H
+10C3	80D1	lmov    TM4C1, a
+				;116		_tm4al=5000%256; _tm4ah=5000/256;
+10C5	0F88	mov     a, 88H
+10C6	80D4	lmov    TM4AL, a
+10C8	0F13	mov     a, 13H
+10C9	80D5	lmov    TM4AH, a
+				;117		_tm0c0=0b00010000;	//For Bit Rate,fINT=fSYS
+10CB	0F10	mov     a, 10H
+10CC	00DE	mov     TM0C0, a
+				;118		_tm0c1=0b11000001;	//T/C, TM0A Match Clear
+10CD	0FC1	mov     a, C1H
+10CE	00DF	mov     TM0C1, a
+				;119		_tm2c0=0; _tm2c1=0b00110001;	//STM:10CF	1F51	clr     TM2C0
+10D0	0F31	mov     a, 31H
+10D1	00D2	mov     TM2C1, a
+				;120		_mf4e=1; _t4ae=1;
+10D2	3133	set     MF4E
+10D3	30B8	set     T4AE
+				;121		_t4on=1;
+10D4	B1D0	lset    T4ON
+				;122		SEC=0; R1sec=100; AD10ms=1; Hall200ms=20;
+10D6	5F6C	clr     SEC[0]
+10D7	0F64	mov     a, 64H
+10D8	40EB	mov     R1sec[0], a
+10D9	0F01	mov     a, 1H
+10DA	40D5	mov     AD10ms[0], a
+10DB	0F14	mov     a, 14H
+10DC	40D6	mov     Hall200ms[0], a
+10DD	0003	ret
+				;123	}
+				;124	
+				;125	void Interrupt_Set(){
+				;126		_pac3=1; _papu3=1;
+				_Interrupt_Set:
+				_Interrupt_Set:
+10B5	3193	set     PAC3
+10B6	3191	set     PAPU3
+				;127		_pac4=1; _papu4=1;
+10B7	3213	set     PAC4
+10B8	3211	set     PAPU4
+				;128		_integ=0b00000010; //INT010B9	0F02	mov     a, 2H
+10BA	00B9	mov     INTEG, a
+				;129		_int0e=1;
+10BB	30B0	set     INT0E
+				;130		_ifs0=0x00;
+10BC	9F48	lclr    IFS0
+10BE	0003	ret
+				;131		//_int1e=1;
+				;132		//_ifs1=0x00;
+				;133	}
+				;134	
+				;135	void Moto_Set(){			//				;136		SW_P0C=1; SW_P0PU=1;	//				_Moto_Set:
+				_Moto_Set:
+10A7	3023	set     PEC0
+10A8	3021	set     PEPU0
+				;137		SW_P1C=1; SW_P1PU=1;
+10A9	30A3	set     PEC1
+10AA	30A1	set     PEPU1
+				;138		_pds2=0x01;				//10AB	0F01	mov     a, 1H
+10AC	80EE	lmov    PDS2, a
+				;139		_tm2c0=0b00000000;
+10AE	1F51	clr     TM2C0
+				;140		_tm2c1=0b10101000;
+10AF	0FA8	mov     a, A8H
+10B0	00D2	mov     TM2C1, a
+				;141		_tm2rp=160;
+10B1	0FA0	mov     a, A0H
+10B2	00D7	mov     TM2RP, a
+				;142		_t2on=1;
+10B3	31D1	set     T2ON
+10B4	0003	ret
+				;143	}
+				;144	
+				;145	void Moto_C(u8 angle){
+				_Moto_C:
+				_Moto_C:
+103A	40A3	mov     angle[0], a
+				;146			temp=Index*20+1000;
+103B	475B	mov     a, Index[0]
+103C	409D	mov     Array, a
+103D	475C	mov     a, Index[1]
+103E	409E	mov     del, a
+103F	0F14	mov     a, 14H
+1040	409F	mov     del[1], a
+1041	5F20	clr     del[2]
+1042	64CE	call    L0CCE
+1043	4721	mov     a, del[3]
+1044	4083	mov     rd, a
+1045	4722	mov     a, del[4]
+1046	4084	mov     re, a
+1047	0FE8	mov     a, E8H
+1048	4383	addm    a, rd
+1049	0F03	mov     a, 3H
+104A	5384	adcm    a, re
+				;147			_tm2al=temp%256;
+104B	4703	mov     a, rd
+104C	4081	mov     rb, a
+104D	4704	mov     a, re
+104E	4082	mov     rc, a
+104F	0FFF	mov     a, FFH
+1050	4681	andm    a, rb
+1051	0F80	mov     a, 80H
+1052	4682	andm    a, rc
+1053	7B82	snz     rc.7
+1054	A860	jmp     L1060
+1055	0FFF	mov     a, FFH
+1056	4381	addm    a, rb
+1057	0FFF	mov     a, FFH
+1058	5382	adcm    a, rc
+1059	0FFF	mov     a, FFH
+105A	4582	orm     a, rc
+105B	0F00	mov     a, 0H
+105C	4581	orm     a, rb
+105D	5481	inc     rb
+105E	3D0A	sz      Z
+105F	5482	inc     rc
+				L1060:
+1060	4701	mov     a, rb
+1061	00D5	mov     TM2AL, a
+				;148			_tm2ah=temp/256;
+1062	4703	mov     a, rd
+1063	4081	mov     rb, a
+1064	4704	mov     a, re
+1065	4082	mov     rc, a
+1066	7B84	snz     re.7
+1067	A86E	jmp     L106E
+1068	0FFF	mov     a, FFH
+1069	4303	add     a, rd
+106A	4081	mov     rb, a
+106B	0F00	mov     a, 0H
+106C	5304	adc     a, re
+106D	4082	mov     rc, a
+				L106E:
+106E	4702	mov     a, rc
+106F	00D6	mov     TM2AH, a
+				;149			temp>>=1;
+1070	4703	mov     a, rd
+1071	4080	mov     ra, a
+1072	4704	mov     a, re
+1073	4081	mov     rb, a
+1074	5A01	rlca    rb
+1075	5B81	rrc     rb
+1076	5B80	rrc     ra
+1077	4700	mov     a, ra
+1078	40E7	mov     temp[0], a
+1079	4701	mov     a, rb
+107A	40E8	mov     temp[1], a
+				;150			Index=angle;
+107B	4723	mov     a, angle[0]
+107C	40DB	mov     Index[0], a
+107D	5F5C	clr     Index[1]
+107E	0003	ret
+				;151	}
+				;152	
+				;153	void AD_Set(){
+				;154		_adcr0=0b00000001;							//				_AD_Set:
+				_AD_Set:
+109C	0F01	mov     a, 1H
+109D	00E8	mov     ADCR0, a
+				;155		_adcr1=0b01100110;							//A/D Clock=fSYS/64,VREFS=0
+109E	0F66	mov     a, 66H
+109F	00E9	mov     ADCR1, a
+				;156		_pas0=0b00110000;							//10A0	0F30	mov     a, 30H
+10A1	80E0	lmov    PAS0, a
+				;157		_pas3=0b00000011;							//10A3	0F03	mov     a, 3H
+10A4	80E3	lmov    PAS3, a
+10A6	0003	ret
+				;158		//_ade=1;									//				;159	}
+				;160	
+				;161	DEFINE_ISR(button_up,0x04){		//INT0 PA3				@button_up_code .SECTION 'CODE'
+0004	4098	mov     r104, a
+0005	070B	mov     a, BP
+0006	1F0B	clr     BP
+0007	2808	jmp     _button_up
+				_button_up:
+				_button_up:
+				@dummy4 .SECTION 'CODE'
+0008	4099	mov     r204, a
+0009	070A	mov     a, STATUS
+000A	40FD	mov     r304, a
+				;162		HallCount++;
+000B	54CF	inc     HallCount[0]
+				;163		_int0f = 0;	
+000C	3630	clr     INT0F
+000D	4719	mov     a, r204
+000E	008B	mov     BP, a
+000F	477D	mov     a, r304
+0010	008A	mov     STATUS, a
+0011	4718	mov     a, r104
+0012	0004	reti
+				;164	}
+				;165	
+				;166	/*
+				;167	DEFINE_ISR(Button_Down,0x08)
+				;168	{	//INT1 PA4				;169		if(SendX >= 150)
+				;170		{
+				;171			while(HallData < 4)
+				;172			{
+				;173				Moto_C(107);
+				;174				delay_ms(100);
+				;175				Moto_C(135);
+				;176				delay_ms(100);
+				;177				//led2=1;
+				;178			}
+				;179		}
+				;180		_int1f = 0;
+				;181	}*/
+				;182	
+				;183	DEFINE_ISR(ISR_STM,0x38){		//				_ISR_STM:
+				_ISR_STM:
+0013	409B	mov     r238, a
+0014	070A	mov     a, STATUS
+0015	40FE	mov     r338, a
+				@ISR_STM_code .SECTION 'CODE'
+0038	409A	mov     r138, a
+0039	070B	mov     a, BP
+003A	1F0B	clr     BP
+003B	2813	jmp     _ISR_STM
+				;184		if(--AD10ms==0){
+0016	5555	deca    AD10ms[0]
+0017	409C	mov     ra38, a
+0018	5E1C	snz     ra38
+0019	281D	jmp     _L11
+001A	471C	mov     a, ra38
+001B	40D5	mov     AD10ms[0], a
+001C	2826	jmp     _L12
+				;185			AD10ms=1;
+				_L11:
+001D	0F01	mov     a, 1H
+001E	40D5	mov     AD10ms[0], a
+				;186			_start=1; _start=0;						//001F	33E8	set     START
+0020	37E8	clr     START
+				;187			GCC_NOP();
+0021	0000	nop
+				;188			AxisXH = _adrh;
+0022	076B	mov     a, ADRH
+0023	40E4	mov     AxisXH[0], a
+				;189			AxisXL = _adrl;
+0024	076A	mov     a, ADRL
+0025	40E3	mov     AxisXL[0], a
+				;190		}
+				;191		if(--Hall200ms==0){
+				_L12:
+0026	5556	deca    Hall200ms[0]
+0027	409C	mov     ra38, a
+0028	471C	mov     a, ra38
+0029	40D6	mov     Hall200ms[0], a
+002A	509C	sz      ra38
+002B	2831	jmp     _L13
+				;192			HallData = HallCount;
+002C	474F	mov     a, HallCount[0]
+002D	40CC	mov     HallData[0], a
+				;193			HallCount = 0;
+002E	5F4F	clr     HallCount[0]
+				;194			Hall200ms=20;
+002F	0F14	mov     a, 14H
+0030	40D6	mov     Hall200ms[0], a
+				;195		}
+				;196		/*if(--R1sec==0){	
+				;197			R1sec=100;
+				;198			led=1;
+				;199	
+				;200			if(++SEC==5)
+				;201			{
+				;202				SEC=0;
+				;203				led=0;
+				;204				
+				;205			}
+				;206		}*/
+				;207		_t4af=0;
+				_L13:
+0031	36B8	clr     T4AF
+0032	471B	mov     a, r238
+0033	008B	mov     BP, a
+0034	477E	mov     a, r338
+0035	008A	mov     STATUS, a
+0036	471A	mov     a, r138
+0037	0004	reti
+				;208	}
+				;209	
+				;210	void Delay100us(u16 del){
+				;211		u16 a,k;;
+				;212		for(a=0;a<del;a++)
+				_Delay100us:
+				_Delay100us:
+119B	5F01	clr     rb
+119C	5F02	clr     rc
+				_L15:
+119D	4701	mov     a, rb
+119E	421D	sub     a, del[0]
+119F	4702	mov     a, rc
+11A0	521E	sbc     a, del[1]
+11A1	3F0A	sz      CZ
+11A2	A9AE	jmp     _L14
+11A3	5F00	clr     ra
+11AA	5481	inc     rb
+11AB	3D0A	sz      Z
+11AC	5482	inc     rc
+11AD	A99D	jmp     _L15
+				_L14:
+11AE	0003	ret
+				startup_value:
+				@ROMDATA_BASE .SECTION 'CODE'
+11AF	0008	dc	00008H
+11B0	00CC	mov     TM1DH, a
+				;213			for(k=0;k<=25;k++)
+11A6	4700	mov     a, ra
+11A7	0A1A	sub     a, 1AH
+11A8	390A	snz     Z
+11A9	A9A4	jmp     _L18
+				;214				GCC_NOP();
+				_L18:
+11A4	0000	nop
+11A5	5480	inc     ra
+				;215	}
+				;216	
+				;217	void delay_ms(unsigned char del){	
+				_delay_ms:
+				_delay_ms:
+01D0	409E	mov     del[0], a
+				;218		unsigned char a;
+				;219		for(a=0;a<del;a++) 
+01D1	5F00	clr     ra
+01D2	29DC	jmp     L01DC
+01DB	5480	inc     ra
+				L01DC:
+01DC	4700	mov     a, ra
+01DD	421E	sub     a, del[0]
+01DE	390A	snz     Z
+01DF	29D3	jmp     L01D3
+01E0	0003	ret
+				;220			GCC_DELAY(2000);		//				L01D3:
+01D3	0F01	mov     a, 1H
+01D4	409D	mov     Array, a
+01D5	0FF1	mov     a, F1H
+01D6	340B	clr     BP0
+01D7	348B	clr     BP1
+01D8	21C6	call    L01C6
+01D9	348B	clr     BP1
+01DA	340B	clr     BP0
+				;221	}
+				;222	
+				;223	void UARTTxData(u8 data)
+				;224	{	u8 temp=0b00000001;
+				_UARTTxData:
+				_UARTTxData:
+01E1	409D	mov     data[0], a
+01ED	0F01	mov     a, 1H
+01EE	4080	mov     ra, a
+				;225		_tm0al=BITC%256; _tm0ah=BITC/256;				//T
+01E2	0F41	mov     a, 41H
+01E3	00E2	mov     TM0AL, a
+01E4	0F03	mov     a, 3H
+01E5	00E3	mov     TM0AH, a
+				;226		_TX=0;											//01E6	349A	clr     PC1
+				;227		_t0on=1;
+01E7	31DE	set     T0ON
+				;228		_t0af=0;
+01E8	36B4	clr     T0AF
+				;229		while(!_t0af);									//				L01E9:
+01E9	3AB4	snz     T0AF
+01EA	29E9	jmp     L01E9
+				;230		_t0af=0;
+01EB	36B4	clr     T0AF
+01EC	5F01	clr     rb
+				;231		do 
+				;232		{	_TX=(data & temp)? 1 : 0 ;	  				//				L01EF:
+01EF	4700	mov     a, ra
+01F0	461D	and     a, data[0]
+01F1	4082	mov     rc, a
+01F2	0F00	mov     a, 0H
+01F3	4202	sub     a, rc
+01F4	4083	mov     rd, a
+01F5	4703	mov     a, rd
+01F6	4582	orm     a, rc
+01F7	5A82	rlc     rc
+01F8	5F02	clr     rc
+01F9	5A82	rlc     rc
+01FA	4702	mov     a, rc
+01FB	4382	addm    a, rc
+01FC	349A	clr     PC1
+01FD	4702	mov     a, rc
+01FE	059A	orm     a, PC
+				;233			while(!_t0af);								//				L01FF:
+01FF	3AB4	snz     T0AF
+0200	29FF	jmp     L01FF
+				;234			_t0af=0;
+0201	36B4	clr     T0AF
+				;235			temp<<=1;
+0202	4700	mov     a, ra
+0203	4380	addm    a, ra
+0204	5481	inc     rb
+				;236		} while (temp);	
+0205	4701	mov     a, rb
+0206	0A08	sub     a, 8H
+0207	390A	snz     Z
+0208	29EF	jmp     L01EF
+				;237		_TX=1;											//0209	309A	set     PC1
+				;238		while(!_t0af);
+				L020A:
+020A	3AB4	snz     T0AF
+020B	2A0A	jmp     L020A
+				;239		_t0on=0;
+020C	35DE	clr     T0ON
+020D	0003	ret
+				;240	}
+				;241	
+				;242	void TranAxis(void)
+				;243	{
+				;244		SendXH = (u8)((SendX >> 8) & 0Xff);
+				_TranAxis:
+				_TranAxis:
+021E	474E	mov     a, SendX[1]
+021F	4081	mov     rb, a
+0220	4701	mov     a, rb
+0221	40E2	mov     SendXH[0], a
+				;245		SendXL = (u8)(SendX & 0xFF);
+0222	474D	mov     a, SendX[0]
+0223	40E1	mov     SendXL[0], a
+				;246		//AXSUM = AxisX + Head;
+				;247		//AXCRC = ~AXSUM;
+				;248		//AXCRC++;
+				;249		AXCRC = Head+SendXH;
+0224	4760	mov     a, Head[0]
+0225	4080	mov     ra, a
+0226	4701	mov     a, rb
+0227	4300	add     a, ra
+0228	40DE	mov     AXCRC[0], a
+				;250		UARTTxData(Head);
+0229	4700	mov     a, ra
+022A	21E1	call    _UARTTxData
+				;251		UARTTxData(SendXH);
+022B	4762	mov     a, SendXH[0]
+022C	21E1	call    _UARTTxData
+				;252		UARTTxData(SendXL);
+022D	4761	mov     a, SendXL[0]
+022E	21E1	call    _UARTTxData
+				;253		UARTTxData(Axcount);
+022F	4750	mov     a, Axcount[0]
+0230	21E1	call    _UARTTxData
+				;254		UARTTxData(AXCRC);
+0231	475E	mov     a, AXCRC[0]
+0232	21E1	call    _UARTTxData
+0233	0003	ret
+				L0234:
+0234	471D	mov     a, Array
+0235	0A00	sub     a, 0H
+0236	471E	mov     a, del
+0237	0800	sbc     a, 0H
+0238	471F	mov     a, del[1]
+0239	0800	sbc     a, 0H
+023A	4720	mov     a, del[2]
+023B	0800	sbc     a, 0H
+023C	3F0A	sz      CZ
+023D	2A6F	jmp     L026F
+023E	471D	mov     a, Array
+023F	40A1	mov     del[3], a
+0240	471E	mov     a, del
+0241	40A2	mov     del[4], a
+0242	471F	mov     a, del[1]
+0243	40A3	mov     angle, a
+0244	4720	mov     a, del[2]
+0245	40A4	mov     angle[1], a
+0246	0FC1	mov     a, C1H
+0247	4324	add     a, angle[1]
+0248	4083	mov     rd, a
+0249	0FFF	mov     a, FFH
+024A	5F04	clr     re
+024B	5384	adcm    a, re
+024C	5804	rla     re
+024D	0E01	and     a, 1H
+024E	4081	mov     rb, a
+024F	4701	mov     a, rb
+0250	4303	add     a, rd
+0251	4085	mov     rf, a
+0252	1F05	clr     ACC
+0253	5304	adc     a, re
+0254	4086	mov     rg, a
+0255	4705	mov     a, rf
+0256	4081	mov     rb, a
+0257	4706	mov     a, rg
+0258	4082	mov     rc, a
+0259	5A02	rlca    rc
+025A	5B82	rrc     rc
+025B	5B81	rrc     rb
+025C	4701	mov     a, rb
+025D	0B3F	add     a, 3FH
+025E	4080	mov     ra, a
+025F	4700	mov     a, ra
+0260	40A4	mov     angle[1], a
+0261	7B80	snz     ra.7
+0262	2A66	jmp     L0266
+0263	4701	mov     a, rb
+0264	0BBF	add     a, BFH
+0265	40A4	mov     angle[1], a
+				L0266:
+0266	4721	mov     a, del[3]
+0267	4086	mov     rg, a
+0268	4722	mov     a, del[4]
+0269	4085	mov     rf, a
+026A	4723	mov     a, angle
+026B	4084	mov     re, a
+026C	4724	mov     a, angle[1]
+026D	4083	mov     rd, a
+026E	2A73	jmp     L0273
+				L026F:
+026F	5F06	clr     rg
+0270	5F05	clr     rf
+0271	5F04	clr     re
+0272	5F03	clr     rd
+				L0273:
+0273	4704	mov     a, re
+0274	4081	mov     rb, a
+0275	4703	mov     a, rd
+0276	4080	mov     ra, a
+0277	4706	mov     a, rg
+0278	4083	mov     rd, a
+0279	4705	mov     a, rf
+027A	4084	mov     re, a
+027B	4701	mov     a, rb
+027C	4085	mov     rf, a
+027D	4700	mov     a, ra
+027E	4086	mov     rg, a
+027F	4703	mov     a, rd
+0280	4080	mov     ra, a
+0281	4704	mov     a, re
+0282	4081	mov     rb, a
+0283	4705	mov     a, rf
+0284	4082	mov     rc, a
+0285	4706	mov     a, rg
+0286	4083	mov     rd, a
+0287	0003	ret
+				L0288:
+0288	4729	mov     a, angle[6]
+0289	408E	mov     rh[7], a
+028A	4728	mov     a, angle[5]
+028B	408A	mov     rh[3], a
+028C	4727	mov     a, angle[4]
+028D	4089	mov     rh[2], a
+028E	4726	mov     a, angle[3]
+028F	4088	mov     rh[1], a
+0290	0F00	mov     a, 0H
+0291	408F	mov     rh[8], a
+0292	0F00	mov     a, 0H
+0293	4093	mov     rh[12], a
+0294	0F00	mov     a, 0H
+0295	4092	mov     rh[11], a
+0296	0F00	mov     a, 0H
+0297	4091	mov     rh[10], a
+0298	20F7	call    L00F7
+0299	7F8E	sz      rh[7].7
+029A	2A9C	jmp     L029C
+029B	2AA0	jmp     L02A0
+				L029C:
+029C	0F21	mov     a, 21H
+029D	40D7	mov     Hall200ms[1], a
+029E	5F58	clr     Hall200ms[2]
+029F	2B1F	jmp     L031F
+				L02A0:
+02A0	4726	mov     a, angle[3]
+02A1	0A00	sub     a, 0H
+02A2	4727	mov     a, angle[4]
+02A3	0800	sbc     a, 0H
+02A4	4728	mov     a, angle[5]
+02A5	0800	sbc     a, 0H
+02A6	4729	mov     a, angle[6]
+02A7	0800	sbc     a, 0H
+02A8	3F0A	sz      CZ
+02A9	2B1F	jmp     L031F
+02AA	4726	mov     a, angle[3]
+02AB	409D	mov     Array, a
+02AC	4727	mov     a, angle[4]
+02AD	409E	mov     del, a
+02AE	4728	mov     a, angle[5]
+02AF	409F	mov     del[1], a
+02B0	4729	mov     a, angle[6]
+02B1	40A0	mov     del[2], a
+02B2	2234	call    L0234
+02B3	4703	mov     a, rd
+02B4	4086	mov     rg, a
+02B5	4702	mov     a, rc
+02B6	4085	mov     rf, a
+02B7	4701	mov     a, rb
+02B8	4084	mov     re, a
+02B9	4700	mov     a, ra
+02BA	4083	mov     rd, a
+02BB	5F00	clr     ra
+				L02BC:
+02BC	4729	mov     a, angle[6]
+02BD	408E	mov     rh[7], a
+02BE	4728	mov     a, angle[5]
+02BF	408A	mov     rh[3], a
+02C0	4727	mov     a, angle[4]
+02C1	4089	mov     rh[2], a
+02C2	4726	mov     a, angle[3]
+02C3	4088	mov     rh[1], a
+02C4	4706	mov     a, rg
+02C5	408F	mov     rh[8], a
+02C6	4705	mov     a, rf
+02C7	4093	mov     rh[12], a
+02C8	4704	mov     a, re
+02C9	4092	mov     rh[11], a
+02CA	4703	mov     a, rd
+02CB	4091	mov     rh[10], a
+02CC	2178	call    L0178
+02CD	470E	mov     a, rh[7]
+02CE	40AD	mov     angle[10], a
+02CF	470A	mov     a, rh[3]
+02D0	40AC	mov     angle[9], a
+02D1	4709	mov     a, rh[2]
+02D2	40AB	mov     angle[8], a
+02D3	4708	mov     a, rh[1]
+02D4	40AA	mov     angle[7], a
+02D5	472D	mov     a, angle[10]
+02D6	408E	mov     rh[7], a
+02D7	472C	mov     a, angle[9]
+02D8	408A	mov     rh[3], a
+02D9	472B	mov     a, angle[8]
+02DA	4089	mov     rh[2], a
+02DB	472A	mov     a, angle[7]
+02DC	4088	mov     rh[1], a
+02DD	4706	mov     a, rg
+02DE	408F	mov     rh[8], a
+02DF	4705	mov     a, rf
+02E0	4093	mov     rh[12], a
+02E1	4704	mov     a, re
+02E2	4092	mov     rh[11], a
+02E3	4703	mov     a, rd
+02E4	4091	mov     rh[10], a
+02E5	20F9	call    L00F9
+02E6	470E	mov     a, rh[7]
+02E7	40AD	mov     angle[10], a
+02E8	470A	mov     a, rh[3]
+02E9	40AC	mov     angle[9], a
+02EA	4709	mov     a, rh[2]
+02EB	40AB	mov     angle[8], a
+02EC	4708	mov     a, rh[1]
+02ED	40AA	mov     angle[7], a
+02EE	472D	mov     a, angle[10]
+02EF	408E	mov     rh[7], a
+02F0	472C	mov     a, angle[9]
+02F1	408A	mov     rh[3], a
+02F2	472B	mov     a, angle[8]
+02F3	4089	mov     rh[2], a
+02F4	472A	mov     a, angle[7]
+02F5	4088	mov     rh[1], a
+02F6	0F3F	mov     a, 3FH
+02F7	408F	mov     rh[8], a
+02F8	0F00	mov     a, 0H
+02F9	4093	mov     rh[12], a
+02FA	0F00	mov     a, 0H
+02FB	4092	mov     rh[11], a
+02FC	0F00	mov     a, 0H
+02FD	4091	mov     rh[10], a
+02FE	2138	call    L0138
+02FF	470E	mov     a, rh[7]
+0300	40AD	mov     angle[10], a
+0301	470A	mov     a, rh[3]
+0302	40AC	mov     angle[9], a
+0303	4709	mov     a, rh[2]
+0304	40AB	mov     angle[8], a
+0305	4708	mov     a, rh[1]
+0306	40AA	mov     angle[7], a
+0307	472A	mov     a, angle[7]
+0308	4203	sub     a, rd
+0309	472B	mov     a, angle[8]
+030A	5204	sbc     a, re
+030B	472C	mov     a, angle[9]
+030C	5205	sbc     a, rf
+030D	472D	mov     a, angle[10]
+030E	5206	sbc     a, rg
+030F	3F0A	sz      CZ
+0310	2B23	jmp     L0323
+0311	5480	inc     ra
+0312	472A	mov     a, angle[7]
+0313	4083	mov     rd, a
+0314	472B	mov     a, angle[8]
+0315	4084	mov     re, a
+0316	472C	mov     a, angle[9]
+0317	4085	mov     rf, a
+0318	472D	mov     a, angle[10]
+0319	4086	mov     rg, a
+031A	4700	mov     a, ra
+031B	0A05	sub     a, 5H
+031C	390A	snz     Z
+031D	2ABC	jmp     L02BC
+031E	2B23	jmp     L0323
+				L031F:
+031F	5F03	clr     rd
+0320	5F04	clr     re
+0321	5F05	clr     rf
+0322	5F06	clr     rg
+				L0323:
+0323	4703	mov     a, rd
+0324	4080	mov     ra, a
+0325	4704	mov     a, re
+0326	4081	mov     rb, a
+0327	4705	mov     a, rf
+0328	4082	mov     rc, a
+0329	4706	mov     a, rg
+032A	4083	mov     rd, a
+032B	0003	ret
+				L032C:
+032C	471D	mov     a, Array
+032D	0A00	sub     a, 0H
+032E	471E	mov     a, del
+032F	0800	sbc     a, 0H
+0330	471F	mov     a, del[1]
+0331	0800	sbc     a, 0H
+0332	4720	mov     a, del[2]
+0333	0800	sbc     a, 0H
+0334	3F0A	sz      CZ
+0335	2B7E	jmp     L037E
+0336	471D	mov     a, Array
+0337	40A3	mov     angle, a
+0338	471E	mov     a, del
+0339	40A4	mov     angle[1], a
+033A	471F	mov     a, del[1]
+033B	40A5	mov     angle[2], a
+033C	4720	mov     a, del[2]
+033D	40A6	mov     angle[3], a
+033E	7821	snz     del[3].0
+033F	2B67	jmp     L0367
+0340	7FA2	sz      del[4].7
+0341	2B83	jmp     L0383
+0342	4721	mov     a, del[3]
+0343	4522	or      a, del[4]
+0344	3D0A	sz      Z
+0345	2B83	jmp     L0383
+0346	471D	mov     a, Array
+0347	4083	mov     rd, a
+0348	471E	mov     a, del
+0349	4084	mov     re, a
+034A	471F	mov     a, del[1]
+034B	4085	mov     rf, a
+034C	4720	mov     a, del[2]
+034D	4086	mov     rg, a
+034E	4706	mov     a, rg
+034F	408E	mov     rh[7], a
+0350	4705	mov     a, rf
+0351	408A	mov     rh[3], a
+0352	4704	mov     a, re
+0353	4089	mov     rh[2], a
+0354	4703	mov     a, rd
+0355	4088	mov     rh[1], a
+0356	4706	mov     a, rg
+0357	408F	mov     rh[8], a
+0358	4705	mov     a, rf
+0359	4093	mov     rh[12], a
+035A	4704	mov     a, re
+035B	4092	mov     rh[11], a
+035C	4703	mov     a, rd
+035D	4091	mov     rh[10], a
+035E	20F9	call    L00F9
+035F	470E	mov     a, rh[7]
+0360	40A6	mov     angle[3], a
+0361	470A	mov     a, rh[3]
+0362	40A5	mov     angle[2], a
+0363	4709	mov     a, rh[2]
+0364	40A4	mov     angle[1], a
+0365	4708	mov     a, rh[1]
+0366	40A3	mov     angle, a
+				L0367:
+0367	4721	mov     a, del[3]
+0368	4083	mov     rd, a
+0369	4722	mov     a, del[4]
+036A	4084	mov     re, a
+036B	5804	rla     re
+036C	0E01	and     a, 1H
+036D	4081	mov     rb, a
+036E	4701	mov     a, rb
+036F	4303	add     a, rd
+0370	4085	mov     rf, a
+0371	1F05	clr     ACC
+0372	5304	adc     a, re
+0373	4086	mov     rg, a
+0374	4705	mov     a, rf
+0375	4081	mov     rb, a
+0376	4706	mov     a, rg
+0377	4082	mov     rc, a
+0378	5A02	rlca    rc
+0379	5B82	rrc     rc
+037A	5B81	rrc     rb
+037B	4701	mov     a, rb
+037C	43A6	addm    a, angle[3]
+037D	2B9D	jmp     L039D
+				L037E:
+037E	5F23	clr     angle
+037F	5F24	clr     angle[1]
+0380	5F25	clr     angle[2]
+0381	5F26	clr     angle[3]
+0382	2B9D	jmp     L039D
+				L0383:
+0383	4720	mov     a, del[2]
+0384	408E	mov     rh[7], a
+0385	471F	mov     a, del[1]
+0386	408A	mov     rh[3], a
+0387	471E	mov     a, del
+0388	4089	mov     rh[2], a
+0389	471D	mov     a, Array
+038A	4088	mov     rh[1], a
+038B	0F3F	mov     a, 3FH
+038C	408F	mov     rh[8], a
+038D	0F00	mov     a, 0H
+038E	4093	mov     rh[12], a
+038F	0F00	mov     a, 0H
+0390	4092	mov     rh[11], a
+0391	0F00	mov     a, 0H
+0392	4091	mov     rh[10], a
+0393	2138	call    L0138
+0394	470E	mov     a, rh[7]
+0395	40A6	mov     angle[3], a
+0396	470A	mov     a, rh[3]
+0397	40A5	mov     angle[2], a
+0398	4709	mov     a, rh[2]
+0399	40A4	mov     angle[1], a
+039A	4708	mov     a, rh[1]
+039B	40A3	mov     angle, a
+039C	2B67	jmp     L0367
+				L039D:
+039D	4723	mov     a, angle
+039E	4087	mov     rh, a
+039F	4724	mov     a, angle[1]
+03A0	4082	mov     rc, a
+03A1	4725	mov     a, angle[2]
+03A2	4081	mov     rb, a
+03A3	4726	mov     a, angle[3]
+03A4	4080	mov     ra, a
+03A5	4707	mov     a, rh
+03A6	4083	mov     rd, a
+03A7	4702	mov     a, rc
+03A8	4084	mov     re, a
+03A9	4701	mov     a, rb
+03AA	4085	mov     rf, a
+03AB	4700	mov     a, ra
+03AC	4086	mov     rg, a
+03AD	4703	mov     a, rd
+03AE	4080	mov     ra, a
+03AF	4704	mov     a, re
+03B0	4081	mov     rb, a
+03B1	4705	mov     a, rf
+03B2	4082	mov     rc, a
+03B3	4706	mov     a, rg
+03B4	4083	mov     rd, a
+03B5	0003	ret
+				L03B6:
+03B6	4720	mov     a, del[2]
+03B7	408E	mov     rh[7], a
+03B8	471F	mov     a, del[1]
+03B9	408A	mov     rh[3], a
+03BA	471E	mov     a, del
+03BB	4089	mov     rh[2], a
+03BC	471D	mov     a, Array
+03BD	4088	mov     rh[1], a
+03BE	0F00	mov     a, 0H
+03BF	408F	mov     rh[8], a
+03C0	0F00	mov     a, 0H
+03C1	4093	mov     rh[12], a
+03C2	0F00	mov     a, 0H
+03C3	4092	mov     rh[11], a
+03C4	0F00	mov     a, 0H
+03C5	4091	mov     rh[10], a
+03C6	20F7	call    L00F7
+03C7	7F8E	sz      rh[7].7
+03C8	2BCA	jmp     L03CA
+03C9	2BCF	jmp     L03CF
+				L03CA:
+03CA	471F	mov     a, del[1]
+03CB	4520	or      a, del[2]
+03CC	0F80	mov     a, 80H
+03CD	390A	snz     Z
+03CE	44A0	xorm    a, del[2]
+				L03CF:
+03CF	471D	mov     a, Array
+03D0	4087	mov     rh, a
+03D1	471E	mov     a, del
+03D2	4082	mov     rc, a
+03D3	471F	mov     a, del[1]
+03D4	4081	mov     rb, a
+03D5	4720	mov     a, del[2]
+03D6	4080	mov     ra, a
+03D7	4707	mov     a, rh
+03D8	4083	mov     rd, a
+03D9	4702	mov     a, rc
+03DA	4084	mov     re, a
+03DB	4701	mov     a, rb
+03DC	4085	mov     rf, a
+03DD	4700	mov     a, ra
+03DE	4086	mov     rg, a
+03DF	4703	mov     a, rd
+03E0	4080	mov     ra, a
+03E1	4704	mov     a, re
+03E2	4081	mov     rb, a
+03E3	4705	mov     a, rf
+03E4	4082	mov     rc, a
+03E5	4706	mov     a, rg
+03E6	4083	mov     rd, a
+03E7	0003	ret
+				L03E8:
+03E8	4728	mov     a, angle[5]
+03E9	409D	mov     Array, a
+03EA	4729	mov     a, angle[6]
+03EB	409E	mov     del, a
+03EC	472A	mov     a, angle[7]
+03ED	409F	mov     del[1], a
+03EE	472B	mov     a, angle[8]
+03EF	40A0	mov     del[2], a
+03F0	23B6	call    L03B6
+03F1	4703	mov     a, rd
+03F2	408E	mov     rh[7], a
+03F3	4702	mov     a, rc
+03F4	408A	mov     rh[3], a
+03F5	4701	mov     a, rb
+03F6	4089	mov     rh[2], a
+03F7	4700	mov     a, ra
+03F8	4088	mov     rh[1], a
+03F9	0F26	mov     a, 26H
+03FA	408F	mov     rh[8], a
+03FB	0F00	mov     a, 0H
+03FC	4093	mov     rh[12], a
+03FD	0F00	mov     a, 0H
+03FE	4092	mov     rh[11], a
+03FF	0F00	mov     a, 0H
+0400	4091	mov     rh[10], a
+0401	20F7	call    L00F7
+0402	7F8E	sz      rh[7].7
+0403	2F3E	jmp     L073E
+0404	472B	mov     a, angle[8]
+0405	408E	mov     rh[7], a
+0406	472A	mov     a, angle[7]
+0407	408A	mov     rh[3], a
+0408	4729	mov     a, angle[6]
+0409	4089	mov     rh[2], a
+040A	4728	mov     a, angle[5]
+040B	4088	mov     rh[1], a
+040C	0F00	mov     a, 0H
+040D	408F	mov     rh[8], a
+040E	0F00	mov     a, 0H
+040F	4093	mov     rh[12], a
+0410	0F00	mov     a, 0H
+0411	4092	mov     rh[11], a
+0412	0F00	mov     a, 0H
+0413	4091	mov     rh[10], a
+0414	20F7	call    L00F7
+0415	7F8E	sz      rh[7].7
+0416	2C18	jmp     L0418
+0417	2C21	jmp     L0421
+				L0418:
+0418	472A	mov     a, angle[7]
+0419	452B	or      a, angle[8]
+041A	0F80	mov     a, 80H
+041B	390A	snz     Z
+041C	44AB	xorm    a, angle[8]
+041D	0F01	mov     a, 1H
+041E	40B4	mov     angle[17], a
+041F	5F35	clr     angle[18]
+0420	2C23	jmp     L0423
+				L0421:
+0421	5F34	clr     angle[17]
+0422	5F35	clr     angle[18]
+				L0423:
+0423	472B	mov     a, angle[8]
+0424	408E	mov     rh[7], a
+0425	472A	mov     a, angle[7]
+0426	408A	mov     rh[3], a
+0427	4729	mov     a, angle[6]
+0428	4089	mov     rh[2], a
+0429	4728	mov     a, angle[5]
+042A	4088	mov     rh[1], a
+042B	0F3F	mov     a, 3FH
+042C	408F	mov     rh[8], a
+042D	0FB8	mov     a, B8H
+042E	4093	mov     rh[12], a
+042F	0FAA	mov     a, AAH
+0430	4092	mov     rh[11], a
+0431	0F3B	mov     a, 3BH
+0432	4091	mov     rh[10], a
+0433	2138	call    L0138
+0434	470E	mov     a, rh[7]
+0435	40A0	mov     del[2], a
+0436	470A	mov     a, rh[3]
+0437	409F	mov     del[1], a
+0438	4709	mov     a, rh[2]
+0439	409E	mov     del, a
+043A	4708	mov     a, rh[1]
+043B	409D	mov     Array, a
+043C	23B6	call    L03B6
+043D	4703	mov     a, rd
+043E	408E	mov     rh[7], a
+043F	4702	mov     a, rc
+0440	408A	mov     rh[3], a
+0441	4701	mov     a, rb
+0442	4089	mov     rh[2], a
+0443	4700	mov     a, ra
+0444	4088	mov     rh[1], a
+0445	0F3F	mov     a, 3FH
+0446	408F	mov     rh[8], a
+0447	0F00	mov     a, 0H
+0448	4093	mov     rh[12], a
+0449	0F00	mov     a, 0H
+044A	4092	mov     rh[11], a
+044B	0F00	mov     a, 0H
+044C	4091	mov     rh[10], a
+044D	20F9	call    L00F9
+044E	470E	mov     a, rh[7]
+044F	4086	mov     rg, a
+0450	470A	mov     a, rh[3]
+0451	4085	mov     rf, a
+0452	4709	mov     a, rh[2]
+0453	4084	mov     re, a
+0454	4708	mov     a, rh[1]
+0455	4083	mov     rd, a
+0456	4706	mov     a, rg
+0457	408E	mov     rh[7], a
+0458	4705	mov     a, rf
+0459	408A	mov     rh[3], a
+045A	4704	mov     a, re
+045B	4089	mov     rh[2], a
+045C	4703	mov     a, rd
+045D	4088	mov     rh[1], a
+045E	2091	call    L0091
+045F	470E	mov     a, rh[7]
+0460	4086	mov     rg, a
+0461	470A	mov     a, rh[3]
+0462	4085	mov     rf, a
+0463	4709	mov     a, rh[2]
+0464	4084	mov     re, a
+0465	4708	mov     a, rh[1]
+0466	4083	mov     rd, a
+0467	4703	mov     a, rd
+0468	4081	mov     rb, a
+0469	4704	mov     a, re
+046A	4082	mov     rc, a
+046B	4704	mov     a, re
+046C	4089	mov     rh[2], a
+046D	4703	mov     a, rd
+046E	4088	mov     rh[1], a
+046F	21B4	call    L01B4
+0470	470E	mov     a, rh[7]
+0471	4086	mov     rg, a
+0472	470A	mov     a, rh[3]
+0473	4085	mov     rf, a
+0474	4709	mov     a, rh[2]
+0475	4084	mov     re, a
+0476	4708	mov     a, rh[1]
+0477	4083	mov     rd, a
+0478	4706	mov     a, rg
+0479	408E	mov     rh[7], a
+047A	4705	mov     a, rf
+047B	408A	mov     rh[3], a
+047C	4704	mov     a, re
+047D	4089	mov     rh[2], a
+047E	4703	mov     a, rd
+047F	4088	mov     rh[1], a
+0480	0F3F	mov     a, 3FH
+0481	408F	mov     rh[8], a
+0482	0F31	mov     a, 31H
+0483	4093	mov     rh[12], a
+0484	0F72	mov     a, 72H
+0485	4092	mov     rh[11], a
+0486	0F18	mov     a, 18H
+0487	4091	mov     rh[10], a
+0488	2138	call    L0138
+0489	470E	mov     a, rh[7]
+048A	4086	mov     rg, a
+048B	470A	mov     a, rh[3]
+048C	4085	mov     rf, a
+048D	4709	mov     a, rh[2]
+048E	4084	mov     re, a
+048F	4708	mov     a, rh[1]
+0490	4083	mov     rd, a
+0491	472B	mov     a, angle[8]
+0492	408E	mov     rh[7], a
+0493	472A	mov     a, angle[7]
+0494	408A	mov     rh[3], a
+0495	4729	mov     a, angle[6]
+0496	4089	mov     rh[2], a
+0497	4728	mov     a, angle[5]
+0498	4088	mov     rh[1], a
+0499	4706	mov     a, rg
+049A	408F	mov     rh[8], a
+049B	4705	mov     a, rf
+049C	4093	mov     rh[12], a
+049D	4704	mov     a, re
+049E	4092	mov     rh[11], a
+049F	4703	mov     a, rd
+04A0	4091	mov     rh[10], a
+04A1	20F7	call    L00F7
+04A2	470E	mov     a, rh[7]
+04A3	40B3	mov     angle[16], a
+04A4	470A	mov     a, rh[3]
+04A5	40B2	mov     angle[15], a
+04A6	4709	mov     a, rh[2]
+04A7	40B1	mov     angle[14], a
+04A8	4708	mov     a, rh[1]
+04A9	40B0	mov     angle[13], a
+04AA	4733	mov     a, angle[16]
+04AB	408E	mov     rh[7], a
+04AC	4732	mov     a, angle[15]
+04AD	408A	mov     rh[3], a
+04AE	4731	mov     a, angle[14]
+04AF	4089	mov     rh[2], a
+04B0	4730	mov     a, angle[13]
+04B1	4088	mov     rh[1], a
+04B2	4733	mov     a, angle[16]
+04B3	408F	mov     rh[8], a
+04B4	4732	mov     a, angle[15]
+04B5	4093	mov     rh[12], a
+04B6	4731	mov     a, angle[14]
+04B7	4092	mov     rh[11], a
+04B8	4730	mov     a, angle[13]
+04B9	4091	mov     rh[10], a
+04BA	2138	call    L0138
+04BB	470E	mov     a, rh[7]
+04BC	40AF	mov     angle[12], a
+04BD	470A	mov     a, rh[3]
+04BE	40AE	mov     angle[11], a
+04BF	4709	mov     a, rh[2]
+04C0	40AD	mov     angle[10], a
+04C1	4708	mov     a, rh[1]
+04C2	40AC	mov     angle[9], a
+04C3	472F	mov     a, angle[12]
+04C4	408E	mov     rh[7], a
+04C5	472E	mov     a, angle[11]
+04C6	408A	mov     rh[3], a
+04C7	472D	mov     a, angle[10]
+04C8	4089	mov     rh[2], a
+04C9	472C	mov     a, angle[9]
+04CA	4088	mov     rh[1], a
+04CB	0F31	mov     a, 31H
+04CC	408F	mov     rh[8], a
+04CD	0FB8	mov     a, B8H
+04CE	4093	mov     rh[12], a
+04CF	0FEF	mov     a, EFH
+04D0	4092	mov     rh[11], a
+04D1	0F1D	mov     a, 1DH
+04D2	4091	mov     rh[10], a
+04D3	2138	call    L0138
+04D4	470E	mov     a, rh[7]
+04D5	4086	mov     rg, a
+04D6	470A	mov     a, rh[3]
+04D7	4085	mov     rf, a
+04D8	4709	mov     a, rh[2]
+04D9	4084	mov     re, a
+04DA	4708	mov     a, rh[1]
+04DB	4083	mov     rd, a
+04DC	4706	mov     a, rg
+04DD	408E	mov     rh[7], a
+04DE	4705	mov     a, rf
+04DF	408A	mov     rh[3], a
+04E0	4704	mov     a, re
+04E1	4089	mov     rh[2], a
+04E2	4703	mov     a, rd
+04E3	4088	mov     rh[1], a
+04E4	0F35	mov     a, 35H
+04E5	408F	mov     rh[8], a
+04E6	0FD0	mov     a, D0H
+04E7	4093	mov     rh[12], a
+04E8	0F0D	mov     a, DH
+04E9	4092	mov     rh[11], a
+04EA	0F01	mov     a, 1H
+04EB	4091	mov     rh[10], a
+04EC	20F9	call    L00F9
+04ED	470E	mov     a, rh[7]
+04EE	4086	mov     rg, a
+04EF	470A	mov     a, rh[3]
+04F0	4085	mov     rf, a
+04F1	4709	mov     a, rh[2]
+04F2	4084	mov     re, a
+04F3	4708	mov     a, rh[1]
+04F4	4083	mov     rd, a
+04F5	4706	mov     a, rg
+04F6	408E	mov     rh[7], a
+04F7	4705	mov     a, rf
+04F8	408A	mov     rh[3], a
+04F9	4704	mov     a, re
+04FA	4089	mov     rh[2], a
+04FB	4703	mov     a, rd
+04FC	4088	mov     rh[1], a
+04FD	472F	mov     a, angle[12]
+04FE	408F	mov     rh[8], a
+04FF	472E	mov     a, angle[11]
+0500	4093	mov     rh[12], a
+0501	472D	mov     a, angle[10]
+0502	4092	mov     rh[11], a
+0503	472C	mov     a, angle[9]
+0504	4091	mov     rh[10], a
+0505	2138	call    L0138
+0506	470E	mov     a, rh[7]
+0507	4086	mov     rg, a
+0508	470A	mov     a, rh[3]
+0509	4085	mov     rf, a
+050A	4709	mov     a, rh[2]
+050B	4084	mov     re, a
+050C	4708	mov     a, rh[1]
+050D	4083	mov     rd, a
+050E	4706	mov     a, rg
+050F	408E	mov     rh[7], a
+0510	4705	mov     a, rf
+0511	408A	mov     rh[3], a
+0512	4704	mov     a, re
+0513	4089	mov     rh[2], a
+0514	4703	mov     a, rd
+0515	4088	mov     rh[1], a
+0516	0F39	mov     a, 39H
+0517	408F	mov     rh[8], a
+0518	0F88	mov     a, 88H
+0519	4093	mov     rh[12], a
+051A	0F88	mov     a, 88H
+051B	4092	mov     rh[11], a
+051C	0F89	mov     a, 89H
+051D	4091	mov     rh[10], a
+051E	20F9	call    L00F9
+051F	470E	mov     a, rh[7]
+0520	4086	mov     rg, a
+0521	470A	mov     a, rh[3]
+0522	4085	mov     rf, a
+0523	4709	mov     a, rh[2]
+0524	4084	mov     re, a
+0525	4708	mov     a, rh[1]
+0526	4083	mov     rd, a
+0527	4706	mov     a, rg
+0528	408E	mov     rh[7], a
+0529	4705	mov     a, rf
+052A	408A	mov     rh[3], a
+052B	4704	mov     a, re
+052C	4089	mov     rh[2], a
+052D	4703	mov     a, rd
+052E	4088	mov     rh[1], a
+052F	472F	mov     a, angle[12]
+0530	408F	mov     rh[8], a
+0531	472E	mov     a, angle[11]
+0532	4093	mov     rh[12], a
+0533	472D	mov     a, angle[10]
+0534	4092	mov     rh[11], a
+0535	472C	mov     a, angle[9]
+0536	4091	mov     rh[10], a
+0537	2138	call    L0138
+0538	470E	mov     a, rh[7]
+0539	4086	mov     rg, a
+053A	470A	mov     a, rh[3]
+053B	4085	mov     rf, a
+053C	4709	mov     a, rh[2]
+053D	4084	mov     re, a
+053E	4708	mov     a, rh[1]
+053F	4083	mov     rd, a
+0540	4706	mov     a, rg
+0541	408E	mov     rh[7], a
+0542	4705	mov     a, rf
+0543	408A	mov     rh[3], a
+0544	4704	mov     a, re
+0545	4089	mov     rh[2], a
+0546	4703	mov     a, rd
+0547	4088	mov     rh[1], a
+0548	0F3C	mov     a, 3CH
+0549	408F	mov     rh[8], a
+054A	0FAA	mov     a, AAH
+054B	4093	mov     rh[12], a
+054C	0FAA	mov     a, AAH
+054D	4092	mov     rh[11], a
+054E	0FAB	mov     a, ABH
+054F	4091	mov     rh[10], a
+0550	20F9	call    L00F9
+0551	470E	mov     a, rh[7]
+0552	4086	mov     rg, a
+0553	470A	mov     a, rh[3]
+0554	4085	mov     rf, a
+0555	4709	mov     a, rh[2]
+0556	4084	mov     re, a
+0557	4708	mov     a, rh[1]
+0558	4083	mov     rd, a
+0559	4706	mov     a, rg
+055A	408E	mov     rh[7], a
+055B	4705	mov     a, rf
+055C	408A	mov     rh[3], a
+055D	4704	mov     a, re
+055E	4089	mov     rh[2], a
+055F	4703	mov     a, rd
+0560	4088	mov     rh[1], a
+0561	472F	mov     a, angle[12]
+0562	408F	mov     rh[8], a
+0563	472E	mov     a, angle[11]
+0564	4093	mov     rh[12], a
+0565	472D	mov     a, angle[10]
+0566	4092	mov     rh[11], a
+0567	472C	mov     a, angle[9]
+0568	4091	mov     rh[10], a
+0569	2138	call    L0138
+056A	470E	mov     a, rh[7]
+056B	4086	mov     rg, a
+056C	470A	mov     a, rh[3]
+056D	4085	mov     rf, a
+056E	4709	mov     a, rh[2]
+056F	4084	mov     re, a
+0570	4708	mov     a, rh[1]
+0571	4083	mov     rd, a
+0572	4706	mov     a, rg
+0573	408E	mov     rh[7], a
+0574	4705	mov     a, rf
+0575	408A	mov     rh[3], a
+0576	4704	mov     a, re
+0577	4089	mov     rh[2], a
+0578	4703	mov     a, rd
+0579	4088	mov     rh[1], a
+057A	0F3F	mov     a, 3FH
+057B	408F	mov     rh[8], a
+057C	0F00	mov     a, 0H
+057D	4093	mov     rh[12], a
+057E	0F00	mov     a, 0H
+057F	4092	mov     rh[11], a
+0580	0F00	mov     a, 0H
+0581	4091	mov     rh[10], a
+0582	20F9	call    L00F9
+0583	470E	mov     a, rh[7]
+0584	4086	mov     rg, a
+0585	470A	mov     a, rh[3]
+0586	4085	mov     rf, a
+0587	4709	mov     a, rh[2]
+0588	4084	mov     re, a
+0589	4708	mov     a, rh[1]
+058A	4083	mov     rd, a
+058B	4706	mov     a, rg
+058C	408E	mov     rh[7], a
+058D	4705	mov     a, rf
+058E	408A	mov     rh[3], a
+058F	4704	mov     a, re
+0590	4089	mov     rh[2], a
+0591	4703	mov     a, rd
+0592	4088	mov     rh[1], a
+0593	4733	mov     a, angle[16]
+0594	408F	mov     rh[8], a
+0595	4732	mov     a, angle[15]
+0596	4093	mov     rh[12], a
+0597	4731	mov     a, angle[14]
+0598	4092	mov     rh[11], a
+0599	4730	mov     a, angle[13]
+059A	4091	mov     rh[10], a
+059B	2138	call    L0138
+059C	470E	mov     a, rh[7]
+059D	40B3	mov     angle[16], a
+059E	470A	mov     a, rh[3]
+059F	40B2	mov     angle[15], a
+05A0	4709	mov     a, rh[2]
+05A1	40B1	mov     angle[14], a
+05A2	4708	mov     a, rh[1]
+05A3	40B0	mov     angle[13], a
+05A4	472F	mov     a, angle[12]
+05A5	408E	mov     rh[7], a
+05A6	472E	mov     a, angle[11]
+05A7	408A	mov     rh[3], a
+05A8	472D	mov     a, angle[10]
+05A9	4089	mov     rh[2], a
+05AA	472C	mov     a, angle[9]
+05AB	4088	mov     rh[1], a
+05AC	0F33	mov     a, 33H
+05AD	408F	mov     rh[8], a
+05AE	0FD0	mov     a, D0H
+05AF	4093	mov     rh[12], a
+05B0	0F0D	mov     a, DH
+05B1	4092	mov     rh[11], a
+05B2	0F01	mov     a, 1H
+05B3	4091	mov     rh[10], a
+05B4	2138	call    L0138
+05B5	470E	mov     a, rh[7]
+05B6	4086	mov     rg, a
+05B7	470A	mov     a, rh[3]
+05B8	4085	mov     rf, a
+05B9	4709	mov     a, rh[2]
+05BA	4084	mov     re, a
+05BB	4708	mov     a, rh[1]
+05BC	4083	mov     rd, a
+05BD	4706	mov     a, rg
+05BE	408E	mov     rh[7], a
+05BF	4705	mov     a, rf
+05C0	408A	mov     rh[3], a
+05C1	4704	mov     a, re
+05C2	4089	mov     rh[2], a
+05C3	4703	mov     a, rd
+05C4	4088	mov     rh[1], a
+05C5	0F37	mov     a, 37H
+05C6	408F	mov     rh[8], a
+05C7	0FB6	mov     a, B6H
+05C8	4093	mov     rh[12], a
+05C9	0F0B	mov     a, BH
+05CA	4092	mov     rh[11], a
+05CB	0F61	mov     a, 61H
+05CC	4091	mov     rh[10], a
+05CD	20F9	call    L00F9
+05CE	470E	mov     a, rh[7]
+05CF	4086	mov     rg, a
+05D0	470A	mov     a, rh[3]
+05D1	4085	mov     rf, a
+05D2	4709	mov     a, rh[2]
+05D3	4084	mov     re, a
+05D4	4708	mov     a, rh[1]
+05D5	4083	mov     rd, a
+05D6	4706	mov     a, rg
+05D7	408E	mov     rh[7], a
+05D8	4705	mov     a, rf
+05D9	408A	mov     rh[3], a
+05DA	4704	mov     a, re
+05DB	4089	mov     rh[2], a
+05DC	4703	mov     a, rd
+05DD	4088	mov     rh[1], a
+05DE	472F	mov     a, angle[12]
+05DF	408F	mov     rh[8], a
+05E0	472E	mov     a, angle[11]
+05E1	4093	mov     rh[12], a
+05E2	472D	mov     a, angle[10]
+05E3	4092	mov     rh[11], a
+05E4	472C	mov     a, angle[9]
+05E5	4091	mov     rh[10], a
+05E6	2138	call    L0138
+05E7	470E	mov     a, rh[7]
+05E8	4086	mov     rg, a
+05E9	470A	mov     a, rh[3]
+05EA	4085	mov     rf, a
+05EB	4709	mov     a, rh[2]
+05EC	4084	mov     re, a
+05ED	4708	mov     a, rh[1]
+05EE	4083	mov     rd, a
+05EF	4706	mov     a, rg
+05F0	408E	mov     rh[7], a
+05F1	4705	mov     a, rf
+05F2	408A	mov     rh[3], a
+05F3	4704	mov     a, re
+05F4	4089	mov     rh[2], a
+05F5	4703	mov     a, rd
+05F6	4088	mov     rh[1], a
+05F7	0F3B	mov     a, 3BH
+05F8	408F	mov     rh[8], a
+05F9	0F2A	mov     a, 2AH
+05FA	4093	mov     rh[12], a
+05FB	0FAA	mov     a, AAH
+05FC	4092	mov     rh[11], a
+05FD	0FAB	mov     a, ABH
+05FE	4091	mov     rh[10], a
+05FF	20F9	call    L00F9
+0600	470E	mov     a, rh[7]
+0601	4086	mov     rg, a
+0602	470A	mov     a, rh[3]
+0603	4085	mov     rf, a
+0604	4709	mov     a, rh[2]
+0605	4084	mov     re, a
+0606	4708	mov     a, rh[1]
+0607	4083	mov     rd, a
+0608	4706	mov     a, rg
+0609	408E	mov     rh[7], a
+060A	4705	mov     a, rf
+060B	408A	mov     rh[3], a
+060C	4704	mov     a, re
+060D	4089	mov     rh[2], a
+060E	4703	mov     a, rd
+060F	4088	mov     rh[1], a
+0610	472F	mov     a, angle[12]
+0611	408F	mov     rh[8], a
+0612	472E	mov     a, angle[11]
+0613	4093	mov     rh[12], a
+0614	472D	mov     a, angle[10]
+0615	4092	mov     rh[11], a
+0616	472C	mov     a, angle[9]
+0617	4091	mov     rh[10], a
+0618	2138	call    L0138
+0619	470E	mov     a, rh[7]
+061A	4086	mov     rg, a
+061B	470A	mov     a, rh[3]
+061C	4085	mov     rf, a
+061D	4709	mov     a, rh[2]
+061E	4084	mov     re, a
+061F	4708	mov     a, rh[1]
+0620	4083	mov     rd, a
+0621	4706	mov     a, rg
+0622	408E	mov     rh[7], a
+0623	4705	mov     a, rf
+0624	408A	mov     rh[3], a
+0625	4704	mov     a, re
+0626	4089	mov     rh[2], a
+0627	4703	mov     a, rd
+0628	4088	mov     rh[1], a
+0629	0F3E	mov     a, 3EH
+062A	408F	mov     rh[8], a
+062B	0F00	mov     a, 0H
+062C	4093	mov     rh[12], a
+062D	0F00	mov     a, 0H
+062E	4092	mov     rh[11], a
+062F	0F00	mov     a, 0H
+0630	4091	mov     rh[10], a
+0631	20F9	call    L00F9
+0632	470E	mov     a, rh[7]
+0633	4086	mov     rg, a
+0634	470A	mov     a, rh[3]
+0635	4085	mov     rf, a
+0636	4709	mov     a, rh[2]
+0637	4084	mov     re, a
+0638	4708	mov     a, rh[1]
+0639	4083	mov     rd, a
+063A	4706	mov     a, rg
+063B	408E	mov     rh[7], a
+063C	4705	mov     a, rf
+063D	408A	mov     rh[3], a
+063E	4704	mov     a, re
+063F	4089	mov     rh[2], a
+0640	4703	mov     a, rd
+0641	4088	mov     rh[1], a
+0642	472F	mov     a, angle[12]
+0643	408F	mov     rh[8], a
+0644	472E	mov     a, angle[11]
+0645	4093	mov     rh[12], a
+0646	472D	mov     a, angle[10]
+0647	4092	mov     rh[11], a
+0648	472C	mov     a, angle[9]
+0649	4091	mov     rh[10], a
+064A	2138	call    L0138
+064B	470E	mov     a, rh[7]
+064C	4086	mov     rg, a
+064D	470A	mov     a, rh[3]
+064E	4085	mov     rf, a
+064F	4709	mov     a, rh[2]
+0650	4084	mov     re, a
+0651	4708	mov     a, rh[1]
+0652	4083	mov     rd, a
+0653	4706	mov     a, rg
+0654	408E	mov     rh[7], a
+0655	4705	mov     a, rf
+0656	408A	mov     rh[3], a
+0657	4704	mov     a, re
+0658	4089	mov     rh[2], a
+0659	4703	mov     a, rd
+065A	4088	mov     rh[1], a
+065B	0F3F	mov     a, 3FH
+065C	408F	mov     rh[8], a
+065D	0F80	mov     a, 80H
+065E	4093	mov     rh[12], a
+065F	0F00	mov     a, 0H
+0660	4092	mov     rh[11], a
+0661	0F00	mov     a, 0H
+0662	4091	mov     rh[10], a
+0663	20F9	call    L00F9
+0664	470E	mov     a, rh[7]
+0665	4086	mov     rg, a
+0666	470A	mov     a, rh[3]
+0667	4085	mov     rf, a
+0668	4709	mov     a, rh[2]
+0669	4084	mov     re, a
+066A	4708	mov     a, rh[1]
+066B	4083	mov     rd, a
+066C	4734	mov     a, angle[17]
+066D	0C01	xor     a, 1H
+066E	4535	or      a, angle[18]
+066F	390A	snz     Z
+0670	2EE3	jmp     L06E3
+0671	0F01	mov     a, 1H
+0672	4301	add     a, rb
+0673	40A1	mov     del[3], a
+0674	0F00	mov     a, 0H
+0675	5302	adc     a, rc
+0676	40A2	mov     del[4], a
+0677	4706	mov     a, rg
+0678	408E	mov     rh[7], a
+0679	4705	mov     a, rf
+067A	408A	mov     rh[3], a
+067B	4704	mov     a, re
+067C	4089	mov     rh[2], a
+067D	4703	mov     a, rd
+067E	4088	mov     rh[1], a
+067F	4733	mov     a, angle[16]
+0680	408F	mov     rh[8], a
+0681	4732	mov     a, angle[15]
+0682	4093	mov     rh[12], a
+0683	4731	mov     a, angle[14]
+0684	4092	mov     rh[11], a
+0685	4730	mov     a, angle[13]
+0686	4091	mov     rh[10], a
+0687	20F7	call    L00F7
+0688	470E	mov     a, rh[7]
+0689	4086	mov     rg, a
+068A	470A	mov     a, rh[3]
+068B	4085	mov     rf, a
+068C	4709	mov     a, rh[2]
+068D	4084	mov     re, a
+068E	4708	mov     a, rh[1]
+068F	4083	mov     rd, a
+0690	4733	mov     a, angle[16]
+0691	408E	mov     rh[7], a
+0692	4732	mov     a, angle[15]
+0693	408A	mov     rh[3], a
+0694	4731	mov     a, angle[14]
+0695	4089	mov     rh[2], a
+0696	4730	mov     a, angle[13]
+0697	4088	mov     rh[1], a
+0698	4706	mov     a, rg
+0699	408F	mov     rh[8], a
+069A	4705	mov     a, rf
+069B	4093	mov     rh[12], a
+069C	4704	mov     a, re
+069D	4092	mov     rh[11], a
+069E	4703	mov     a, rd
+069F	4091	mov     rh[10], a
+06A0	2178	call    L0178
+06A1	470E	mov     a, rh[7]
+06A2	4086	mov     rg, a
+06A3	470A	mov     a, rh[3]
+06A4	4085	mov     rf, a
+06A5	4709	mov     a, rh[2]
+06A6	4084	mov     re, a
+06A7	4708	mov     a, rh[1]
+06A8	4083	mov     rd, a
+06A9	4706	mov     a, rg
+06AA	408E	mov     rh[7], a
+06AB	4705	mov     a, rf
+06AC	408A	mov     rh[3], a
+06AD	4704	mov     a, re
+06AE	4089	mov     rh[2], a
+06AF	4703	mov     a, rd
+06B0	4088	mov     rh[1], a
+06B1	0F3F	mov     a, 3FH
+06B2	408F	mov     rh[8], a
+06B3	0F00	mov     a, 0H
+06B4	4093	mov     rh[12], a
+06B5	0F00	mov     a, 0H
+06B6	4092	mov     rh[11], a
+06B7	0F00	mov     a, 0H
+06B8	4091	mov     rh[10], a
+06B9	20F9	call    L00F9
+06BA	470E	mov     a, rh[7]
+06BB	40A0	mov     del[2], a
+06BC	470A	mov     a, rh[3]
+06BD	409F	mov     del[1], a
+06BE	4709	mov     a, rh[2]
+06BF	409E	mov     del, a
+06C0	4708	mov     a, rh[1]
+06C1	409D	mov     Array, a
+06C2	232C	call    L032C
+06C3	5F04	clr     re
+06C4	5F05	clr     rf
+06C5	0F80	mov     a, 80H
+06C6	4086	mov     rg, a
+06C7	0F3F	mov     a, 3FH
+06C8	4087	mov     rh, a
+06C9	4707	mov     a, rh
+06CA	408E	mov     rh[7], a
+06CB	4706	mov     a, rg
+06CC	408A	mov     rh[3], a
+06CD	4705	mov     a, rf
+06CE	4089	mov     rh[2], a
+06CF	4704	mov     a, re
+06D0	4088	mov     rh[1], a
+06D1	4703	mov     a, rd
+06D2	408F	mov     rh[8], a
+06D3	4702	mov     a, rc
+06D4	4093	mov     rh[12], a
+06D5	4701	mov     a, rb
+06D6	4092	mov     rh[11], a
+06D7	4700	mov     a, ra
+06D8	4091	mov     rh[10], a
+06D9	2178	call    L0178
+06DA	470E	mov     a, rh[7]
+06DB	4086	mov     rg, a
+06DC	470A	mov     a, rh[3]
+06DD	4085	mov     rf, a
+06DE	4709	mov     a, rh[2]
+06DF	4084	mov     re, a
+06E0	4708	mov     a, rh[1]
+06E1	4083	mov     rd, a
+06E2	2F44	jmp     L0744
+				L06E3:
+06E3	0F01	mov     a, 1H
+06E4	4301	add     a, rb
+06E5	40A1	mov     del[3], a
+06E6	0F00	mov     a, 0H
+06E7	5302	adc     a, rc
+06E8	40A2	mov     del[4], a
+06E9	4706	mov     a, rg
+06EA	408E	mov     rh[7], a
+06EB	4705	mov     a, rf
+06EC	408A	mov     rh[3], a
+06ED	4704	mov     a, re
+06EE	4089	mov     rh[2], a
+06EF	4703	mov     a, rd
+06F0	4088	mov     rh[1], a
+06F1	4733	mov     a, angle[16]
+06F2	408F	mov     rh[8], a
+06F3	4732	mov     a, angle[15]
+06F4	4093	mov     rh[12], a
+06F5	4731	mov     a, angle[14]
+06F6	4092	mov     rh[11], a
+06F7	4730	mov     a, angle[13]
+06F8	4091	mov     rh[10], a
+06F9	20F7	call    L00F7
+06FA	470E	mov     a, rh[7]
+06FB	4086	mov     rg, a
+06FC	470A	mov     a, rh[3]
+06FD	4085	mov     rf, a
+06FE	4709	mov     a, rh[2]
+06FF	4084	mov     re, a
+0700	4708	mov     a, rh[1]
+0701	4083	mov     rd, a
+0702	4733	mov     a, angle[16]
+0703	408E	mov     rh[7], a
+0704	4732	mov     a, angle[15]
+0705	408A	mov     rh[3], a
+0706	4731	mov     a, angle[14]
+0707	4089	mov     rh[2], a
+0708	4730	mov     a, angle[13]
+0709	4088	mov     rh[1], a
+070A	4706	mov     a, rg
+070B	408F	mov     rh[8], a
+070C	4705	mov     a, rf
+070D	4093	mov     rh[12], a
+070E	4704	mov     a, re
+070F	4092	mov     rh[11], a
+0710	4703	mov     a, rd
+0711	4091	mov     rh[10], a
+0712	2178	call    L0178
+0713	470E	mov     a, rh[7]
+0714	4086	mov     rg, a
+0715	470A	mov     a, rh[3]
+0716	4085	mov     rf, a
+0717	4709	mov     a, rh[2]
+0718	4084	mov     re, a
+0719	4708	mov     a, rh[1]
+071A	4083	mov     rd, a
+071B	4706	mov     a, rg
+071C	408E	mov     rh[7], a
+071D	4705	mov     a, rf
+071E	408A	mov     rh[3], a
+071F	4704	mov     a, re
+0720	4089	mov     rh[2], a
+0721	4703	mov     a, rd
+0722	4088	mov     rh[1], a
+0723	0F3F	mov     a, 3FH
+0724	408F	mov     rh[8], a
+0725	0F00	mov     a, 0H
+0726	4093	mov     rh[12], a
+0727	0F00	mov     a, 0H
+0728	4092	mov     rh[11], a
+0729	0F00	mov     a, 0H
+072A	4091	mov     rh[10], a
+072B	20F9	call    L00F9
+072C	470E	mov     a, rh[7]
+072D	40A0	mov     del[2], a
+072E	470A	mov     a, rh[3]
+072F	409F	mov     del[1], a
+0730	4709	mov     a, rh[2]
+0731	409E	mov     del, a
+0732	4708	mov     a, rh[1]
+0733	409D	mov     Array, a
+0734	232C	call    L032C
+0735	4703	mov     a, rd
+0736	4086	mov     rg, a
+0737	4702	mov     a, rc
+0738	4085	mov     rf, a
+0739	4701	mov     a, rb
+073A	4084	mov     re, a
+073B	4700	mov     a, ra
+073C	4083	mov     rd, a
+073D	2F44	jmp     L0744
+				L073E:
+073E	5F03	clr     rd
+073F	5F04	clr     re
+0740	0F80	mov     a, 80H
+0741	4085	mov     rf, a
+0742	0F3F	mov     a, 3FH
+0743	4086	mov     rg, a
+				L0744:
+0744	4703	mov     a, rd
+0745	4080	mov     ra, a
+0746	4704	mov     a, re
+0747	4081	mov     rb, a
+0748	4705	mov     a, rf
+0749	4082	mov     rc, a
+074A	4706	mov     a, rg
+074B	4083	mov     rd, a
+074C	0003	ret
+				L074D:
+074D	4720	mov     a, del[2]
+074E	408E	mov     rh[7], a
+074F	471F	mov     a, del[1]
+0750	408A	mov     rh[3], a
+0751	471E	mov     a, del
+0752	4089	mov     rh[2], a
+0753	471D	mov     a, Array
+0754	4088	mov     rh[1], a
+0755	0F00	mov     a, 0H
+0756	408F	mov     rh[8], a
+0757	0F00	mov     a, 0H
+0758	4093	mov     rh[12], a
+0759	0F00	mov     a, 0H
+075A	4092	mov     rh[11], a
+075B	0F00	mov     a, 0H
+075C	4091	mov     rh[10], a
+075D	20F7	call    L00F7
+075E	7F8E	sz      rh[7].7
+075F	2F61	jmp     L0761
+0760	2F64	jmp     L0764
+				L0761:
+0761	5FA8	set     angle[5]
+0762	5FA9	set     angle[6]
+0763	2F67	jmp     L0767
+				L0764:
+0764	0F01	mov     a, 1H
+0765	40A8	mov     angle[5], a
+0766	5F29	clr     angle[6]
+				L0767:
+0767	4721	mov     a, del[3]
+0768	40AA	mov     angle[7], a
+0769	4722	mov     a, del[4]
+076A	40AB	mov     angle[8], a
+076B	471D	mov     a, Array
+076C	0A00	sub     a, 0H
+076D	471E	mov     a, del
+076E	0800	sbc     a, 0H
+076F	471F	mov     a, del[1]
+0770	0800	sbc     a, 0H
+0771	4720	mov     a, del[2]
+0772	0800	sbc     a, 0H
+0773	3F0A	sz      CZ
+0774	2FFA	jmp     L07FA
+0775	471D	mov     a, Array
+0776	40A3	mov     angle, a
+0777	471E	mov     a, del
+0778	40A4	mov     angle[1], a
+0779	471F	mov     a, del[1]
+077A	40A5	mov     angle[2], a
+077B	4720	mov     a, del[2]
+077C	40A6	mov     angle[3], a
+077D	0FC1	mov     a, C1H
+077E	4326	add     a, angle[3]
+077F	4081	mov     rb, a
+0780	0FFF	mov     a, FFH
+0781	5F02	clr     rc
+0782	5382	adcm    a, rc
+0783	340A	clr     C
+0784	5A81	rlc     rb
+0785	5A82	rlc     rc
+0786	0F3F	mov     a, 3FH
+0787	40A6	mov     angle[3], a
+0788	4723	mov     a, angle
+0789	4083	mov     rd, a
+078A	4724	mov     a, angle[1]
+078B	4084	mov     re, a
+078C	4725	mov     a, angle[2]
+078D	4085	mov     rf, a
+078E	4726	mov     a, angle[3]
+078F	4086	mov     rg, a
+0790	4706	mov     a, rg
+0791	408E	mov     rh[7], a
+0792	4705	mov     a, rf
+0793	408A	mov     rh[3], a
+0794	4704	mov     a, re
+0795	4089	mov     rh[2], a
+0796	4703	mov     a, rd
+0797	4088	mov     rh[1], a
+0798	0F3F	mov     a, 3FH
+0799	408F	mov     rh[8], a
+079A	0F80	mov     a, 80H
+079B	4093	mov     rh[12], a
+079C	0F00	mov     a, 0H
+079D	4092	mov     rh[11], a
+079E	0F00	mov     a, 0H
+079F	4091	mov     rh[10], a
+07A0	20F7	call    L00F7
+07A1	7B8E	snz     rh[7].7
+07A2	2FA4	jmp     L07A4
+07A3	2FC0	jmp     L07C0
+				L07A4:
+07A4	4706	mov     a, rg
+07A5	408E	mov     rh[7], a
+07A6	4705	mov     a, rf
+07A7	408A	mov     rh[3], a
+07A8	4704	mov     a, re
+07A9	4089	mov     rh[2], a
+07AA	4703	mov     a, rd
+07AB	4088	mov     rh[1], a
+07AC	0F3F	mov     a, 3FH
+07AD	408F	mov     rh[8], a
+07AE	0F00	mov     a, 0H
+07AF	4093	mov     rh[12], a
+07B0	0F00	mov     a, 0H
+07B1	4092	mov     rh[11], a
+07B2	0F00	mov     a, 0H
+07B3	4091	mov     rh[10], a
+07B4	2138	call    L0138
+07B5	470E	mov     a, rh[7]
+07B6	40A6	mov     angle[3], a
+07B7	470A	mov     a, rh[3]
+07B8	40A5	mov     angle[2], a
+07B9	4709	mov     a, rh[2]
+07BA	40A4	mov     angle[1], a
+07BB	4708	mov     a, rh[1]
+07BC	40A3	mov     angle, a
+07BD	5481	inc     rb
+07BE	3D0A	sz      Z
+07BF	5482	inc     rc
+				L07C0:
+07C0	0F80	mov     a, 80H
+07C1	4201	sub     a, rb
+07C2	0F00	mov     a, 0H
+07C3	5202	sbc     a, rc
+07C4	3B8A	snz     SC
+07C5	2FCA	jmp     L07CA
+07C6	0F00	mov     a, 0H
+07C7	4381	addm    a, rb
+07C8	0FFF	mov     a, FFH
+07C9	5382	adcm    a, rc
+				L07CA:
+07CA	472A	mov     a, angle[7]
+07CB	0083	mov     MP1L, a
+07CC	472B	mov     a, angle[8]
+07CD	0084	mov     MP1H, a
+07CE	4701	mov     a, rb
+07CF	0082	mov     [02H], a
+07D0	1483	inc     MP1L
+07D1	4702	mov     a, rc
+07D2	0082	mov     [02H], a
+07D3	4729	mov     a, angle[6]
+07D4	4089	mov     rh[2], a
+07D5	4728	mov     a, angle[5]
+07D6	4088	mov     rh[1], a
+07D7	21B4	call    L01B4
+07D8	470E	mov     a, rh[7]
+07D9	4086	mov     rg, a
+07DA	470A	mov     a, rh[3]
+07DB	4085	mov     rf, a
+07DC	4709	mov     a, rh[2]
+07DD	4084	mov     re, a
+07DE	4708	mov     a, rh[1]
+07DF	4083	mov     rd, a
+07E0	4706	mov     a, rg
+07E1	408E	mov     rh[7], a
+07E2	4705	mov     a, rf
+07E3	408A	mov     rh[3], a
+07E4	4704	mov     a, re
+07E5	4089	mov     rh[2], a
+07E6	4703	mov     a, rd
+07E7	4088	mov     rh[1], a
+07E8	4726	mov     a, angle[3]
+07E9	408F	mov     rh[8], a
+07EA	4725	mov     a, angle[2]
+07EB	4093	mov     rh[12], a
+07EC	4724	mov     a, angle[1]
+07ED	4092	mov     rh[11], a
+07EE	4723	mov     a, angle
+07EF	4091	mov     rh[10], a
+07F0	2138	call    L0138
+07F1	470E	mov     a, rh[7]
+07F2	4086	mov     rg, a
+07F3	470A	mov     a, rh[3]
+07F4	4085	mov     rf, a
+07F5	4709	mov     a, rh[2]
+07F6	4084	mov     re, a
+07F7	4708	mov     a, rh[1]
+07F8	4083	mov     rd, a
+07F9	6805	jmp     L0805
+				L07FA:
+07FA	472A	mov     a, angle[7]
+07FB	0083	mov     MP1L, a
+07FC	472B	mov     a, angle[8]
+07FD	0084	mov     MP1H, a
+07FE	1F02	clr     [02H]
+07FF	1483	inc     MP1L
+0800	1F02	clr     [02H]
+0801	5F03	clr     rd
+0802	5F04	clr     re
+0803	5F05	clr     rf
+0804	5F06	clr     rg
+				L0805:
+0805	4703	mov     a, rd
+0806	4080	mov     ra, a
+0807	4704	mov     a, re
+0808	4081	mov     rb, a
+0809	4705	mov     a, rf
+080A	4082	mov     rc, a
+080B	4706	mov     a, rg
+080C	4083	mov     rd, a
+080D	0003	ret
+				L080E:
+080E	472F	mov     a, angle[12]
+080F	408E	mov     rh[7], a
+0810	472E	mov     a, angle[11]
+0811	408A	mov     rh[3], a
+0812	472D	mov     a, angle[10]
+0813	4089	mov     rh[2], a
+0814	472C	mov     a, angle[9]
+0815	4088	mov     rh[1], a
+0816	0F00	mov     a, 0H
+0817	408F	mov     rh[8], a
+0818	0F00	mov     a, 0H
+0819	4093	mov     rh[12], a
+081A	0F00	mov     a, 0H
+081B	4092	mov     rh[11], a
+081C	0F00	mov     a, 0H
+081D	4091	mov     rh[10], a
+081E	20F7	call    L00F7
+081F	7F8E	sz      rh[7].7
+0820	6822	jmp     L0822
+0821	6826	jmp     L0826
+				L0822:
+0822	0F21	mov     a, 21H
+0823	40D7	mov     Hall200ms[1], a
+0824	5F58	clr     Hall200ms[2]
+0825	6833	jmp     L0833
+				L0826:
+0826	472C	mov     a, angle[9]
+0827	0A00	sub     a, 0H
+0828	472D	mov     a, angle[10]
+0829	0800	sbc     a, 0H
+082A	472E	mov     a, angle[11]
+082B	0800	sbc     a, 0H
+082C	472F	mov     a, angle[12]
+082D	0800	sbc     a, 0H
+082E	3B0A	snz     CZ
+082F	6838	jmp     L0838
+0830	0F22	mov     a, 22H
+0831	40D7	mov     Hall200ms[1], a
+0832	5F58	clr     Hall200ms[2]
+				L0833:
+0833	5F03	clr     rd
+0834	5F04	clr     re
+0835	5F05	clr     rf
+0836	5F06	clr     rg
+0837	6B01	jmp     L0B01
+				L0838:
+0838	0FAC	mov     a, ACH
+0839	4080	mov     ra, a
+083A	0F00	mov     a, 0H
+083B	4081	mov     rb, a
+083C	0F04	mov     a, 4H
+083D	4300	add     a, ra
+083E	40A1	mov     del[3], a
+083F	0F00	mov     a, 0H
+0840	5301	adc     a, rb
+0841	40A2	mov     del[4], a
+0842	472C	mov     a, angle[9]
+0843	409D	mov     Array, a
+0844	472D	mov     a, angle[10]
+0845	409E	mov     del, a
+0846	472E	mov     a, angle[11]
+0847	409F	mov     del[1], a
+0848	472F	mov     a, angle[12]
+0849	40A0	mov     del[2], a
+084A	274D	call    L074D
+084B	4703	mov     a, rd
+084C	408E	mov     rh[7], a
+084D	4702	mov     a, rc
+084E	408A	mov     rh[3], a
+084F	4701	mov     a, rb
+0850	4089	mov     rh[2], a
+0851	4700	mov     a, ra
+0852	4088	mov     rh[1], a
+0853	4703	mov     a, rd
+0854	408F	mov     rh[8], a
+0855	4702	mov     a, rc
+0856	4093	mov     rh[12], a
+0857	4701	mov     a, rb
+0858	4092	mov     rh[11], a
+0859	4700	mov     a, ra
+085A	4091	mov     rh[10], a
+085B	20F9	call    L00F9
+085C	470E	mov     a, rh[7]
+085D	4086	mov     rg, a
+085E	470A	mov     a, rh[3]
+085F	4085	mov     rf, a
+0860	4709	mov     a, rh[2]
+0861	4084	mov     re, a
+0862	4708	mov     a, rh[1]
+0863	4083	mov     rd, a
+0864	4706	mov     a, rg
+0865	408E	mov     rh[7], a
+0866	4705	mov     a, rf
+0867	408A	mov     rh[3], a
+0868	4704	mov     a, re
+0869	4089	mov     rh[2], a
+086A	4703	mov     a, rd
+086B	4088	mov     rh[1], a
+086C	0F3F	mov     a, 3FH
+086D	408F	mov     rh[8], a
+086E	0F80	mov     a, 80H
+086F	4093	mov     rh[12], a
+0870	0F00	mov     a, 0H
+0871	4092	mov     rh[11], a
+0872	0F00	mov     a, 0H
+0873	4091	mov     rh[10], a
+0874	20F7	call    L00F7
+0875	470E	mov     a, rh[7]
+0876	40B9	mov     angle[22], a
+0877	470A	mov     a, rh[3]
+0878	40B8	mov     angle[21], a
+0879	4709	mov     a, rh[2]
+087A	40B7	mov     angle[20], a
+087B	4708	mov     a, rh[1]
+087C	40B6	mov     angle[19], a
+087D	4706	mov     a, rg
+087E	408E	mov     rh[7], a
+087F	4705	mov     a, rf
+0880	408A	mov     rh[3], a
+0881	4704	mov     a, re
+0882	4089	mov     rh[2], a
+0883	4703	mov     a, rd
+0884	4088	mov     rh[1], a
+0885	0F3F	mov     a, 3FH
+0886	408F	mov     rh[8], a
+0887	0F80	mov     a, 80H
+0888	4093	mov     rh[12], a
+0889	0F00	mov     a, 0H
+088A	4092	mov     rh[11], a
+088B	0F00	mov     a, 0H
+088C	4091	mov     rh[10], a
+088D	20F9	call    L00F9
+088E	470E	mov     a, rh[7]
+088F	4086	mov     rg, a
+0890	470A	mov     a, rh[3]
+0891	4085	mov     rf, a
+0892	4709	mov     a, rh[2]
+0893	4084	mov     re, a
+0894	4708	mov     a, rh[1]
+0895	4083	mov     rd, a
+0896	4739	mov     a, angle[22]
+0897	408E	mov     rh[7], a
+0898	4738	mov     a, angle[21]
+0899	408A	mov     rh[3], a
+089A	4737	mov     a, angle[20]
+089B	4089	mov     rh[2], a
+089C	4736	mov     a, angle[19]
+089D	4088	mov     rh[1], a
+089E	4706	mov     a, rg
+089F	408F	mov     rh[8], a
+08A0	4705	mov     a, rf
+08A1	4093	mov     rh[12], a
+08A2	4704	mov     a, re
+08A3	4092	mov     rh[11], a
+08A4	4703	mov     a, rd
+08A5	4091	mov     rh[10], a
+08A6	2178	call    L0178
+08A7	470E	mov     a, rh[7]
+08A8	40B9	mov     angle[22], a
+08A9	470A	mov     a, rh[3]
+08AA	40B8	mov     angle[21], a
+08AB	4709	mov     a, rh[2]
+08AC	40B7	mov     angle[20], a
+08AD	4708	mov     a, rh[1]
+08AE	40B6	mov     angle[19], a
+08AF	4739	mov     a, angle[22]
+08B0	408E	mov     rh[7], a
+08B1	4738	mov     a, angle[21]
+08B2	408A	mov     rh[3], a
+08B3	4737	mov     a, angle[20]
+08B4	4089	mov     rh[2], a
+08B5	4736	mov     a, angle[19]
+08B6	4088	mov     rh[1], a
+08B7	4739	mov     a, angle[22]
+08B8	408F	mov     rh[8], a
+08B9	4738	mov     a, angle[21]
+08BA	4093	mov     rh[12], a
+08BB	4737	mov     a, angle[20]
+08BC	4092	mov     rh[11], a
+08BD	4736	mov     a, angle[19]
+08BE	4091	mov     rh[10], a
+08BF	2138	call    L0138
+08C0	470E	mov     a, rh[7]
+08C1	4086	mov     rg, a
+08C2	470A	mov     a, rh[3]
+08C3	4085	mov     rf, a
+08C4	4709	mov     a, rh[2]
+08C5	4084	mov     re, a
+08C6	4708	mov     a, rh[1]
+08C7	4083	mov     rd, a
+08C8	4706	mov     a, rg
+08C9	408E	mov     rh[7], a
+08CA	4705	mov     a, rf
+08CB	408A	mov     rh[3], a
+08CC	4704	mov     a, re
+08CD	4089	mov     rh[2], a
+08CE	4703	mov     a, rd
+08CF	4088	mov     rh[1], a
+08D0	0F3D	mov     a, 3DH
+08D1	408F	mov     rh[8], a
+08D2	0F57	mov     a, 57H
+08D3	4093	mov     rh[12], a
+08D4	0F94	mov     a, 94H
+08D5	4092	mov     rh[11], a
+08D6	0F36	mov     a, 36H
+08D7	4091	mov     rh[10], a
+08D8	2138	call    L0138
+08D9	470E	mov     a, rh[7]
+08DA	40B5	mov     angle[18], a
+08DB	470A	mov     a, rh[3]
+08DC	40B4	mov     angle[17], a
+08DD	4709	mov     a, rh[2]
+08DE	40B3	mov     angle[16], a
+08DF	4708	mov     a, rh[1]
+08E0	40B2	mov     angle[15], a
+08E1	4735	mov     a, angle[18]
+08E2	408E	mov     rh[7], a
+08E3	4734	mov     a, angle[17]
+08E4	408A	mov     rh[3], a
+08E5	4733	mov     a, angle[16]
+08E6	4089	mov     rh[2], a
+08E7	4732	mov     a, angle[15]
+08E8	4088	mov     rh[1], a
+08E9	0F3D	mov     a, 3DH
+08EA	408F	mov     rh[8], a
+08EB	0F70	mov     a, 70H
+08EC	4093	mov     rh[12], a
+08ED	0FF0	mov     a, F0H
+08EE	4092	mov     rh[11], a
+08EF	0FF1	mov     a, F1H
+08F0	4091	mov     rh[10], a
+08F1	20F9	call    L00F9
+08F2	470E	mov     a, rh[7]
+08F3	40B5	mov     angle[18], a
+08F4	470A	mov     a, rh[3]
+08F5	40B4	mov     angle[17], a
+08F6	4709	mov     a, rh[2]
+08F7	40B3	mov     angle[16], a
+08F8	4708	mov     a, rh[1]
+08F9	40B2	mov     angle[15], a
+08FA	4735	mov     a, angle[18]
+08FB	408E	mov     rh[7], a
+08FC	4734	mov     a, angle[17]
+08FD	408A	mov     rh[3], a
+08FE	4733	mov     a, angle[16]
+08FF	4089	mov     rh[2], a
+0900	4732	mov     a, angle[15]
+0901	4088	mov     rh[1], a
+0902	4706	mov     a, rg
+0903	408F	mov     rh[8], a
+0904	4705	mov     a, rf
+0905	4093	mov     rh[12], a
+0906	4704	mov     a, re
+0907	4092	mov     rh[11], a
+0908	4703	mov     a, rd
+0909	4091	mov     rh[10], a
+090A	2138	call    L0138
+090B	470E	mov     a, rh[7]
+090C	40B5	mov     angle[18], a
+090D	470A	mov     a, rh[3]
+090E	40B4	mov     angle[17], a
+090F	4709	mov     a, rh[2]
+0910	40B3	mov     angle[16], a
+0911	4708	mov     a, rh[1]
+0912	40B2	mov     angle[15], a
+0913	4735	mov     a, angle[18]
+0914	408E	mov     rh[7], a
+0915	4734	mov     a, angle[17]
+0916	408A	mov     rh[3], a
+0917	4733	mov     a, angle[16]
+0918	4089	mov     rh[2], a
+0919	4732	mov     a, angle[15]
+091A	4088	mov     rh[1], a
+091B	0F3D	mov     a, 3DH
+091C	408F	mov     rh[8], a
+091D	0F88	mov     a, 88H
+091E	4093	mov     rh[12], a
+091F	0F88	mov     a, 88H
+0920	4092	mov     rh[11], a
+0921	0F89	mov     a, 89H
+0922	4091	mov     rh[10], a
+0923	20F9	call    L00F9
+0924	470E	mov     a, rh[7]
+0925	40B5	mov     angle[18], a
+0926	470A	mov     a, rh[3]
+0927	40B4	mov     angle[17], a
+0928	4709	mov     a, rh[2]
+0929	40B3	mov     angle[16], a
+092A	4708	mov     a, rh[1]
+092B	40B2	mov     angle[15], a
+092C	4735	mov     a, angle[18]
+092D	408E	mov     rh[7], a
+092E	4734	mov     a, angle[17]
+092F	408A	mov     rh[3], a
+0930	4733	mov     a, angle[16]
+0931	4089	mov     rh[2], a
+0932	4732	mov     a, angle[15]
+0933	4088	mov     rh[1], a
+0934	4706	mov     a, rg
+0935	408F	mov     rh[8], a
+0936	4705	mov     a, rf
+0937	4093	mov     rh[12], a
+0938	4704	mov     a, re
+0939	4092	mov     rh[11], a
+093A	4703	mov     a, rd
+093B	4091	mov     rh[10], a
+093C	2138	call    L0138
+093D	470E	mov     a, rh[7]
+093E	40B5	mov     angle[18], a
+093F	470A	mov     a, rh[3]
+0940	40B4	mov     angle[17], a
+0941	4709	mov     a, rh[2]
+0942	40B3	mov     angle[16], a
+0943	4708	mov     a, rh[1]
+0944	40B2	mov     angle[15], a
+0945	4735	mov     a, angle[18]
+0946	408E	mov     rh[7], a
+0947	4734	mov     a, angle[17]
+0948	408A	mov     rh[3], a
+0949	4733	mov     a, angle[16]
+094A	4089	mov     rh[2], a
+094B	4732	mov     a, angle[15]
+094C	4088	mov     rh[1], a
+094D	0F3D	mov     a, 3DH
+094E	408F	mov     rh[8], a
+094F	0F9D	mov     a, 9DH
+0950	4093	mov     rh[12], a
+0951	0F89	mov     a, 89H
+0952	4092	mov     rh[11], a
+0953	0FD9	mov     a, D9H
+0954	4091	mov     rh[10], a
+0955	20F9	call    L00F9
+0956	470E	mov     a, rh[7]
+0957	40B5	mov     angle[18], a
+0958	470A	mov     a, rh[3]
+0959	40B4	mov     angle[17], a
+095A	4709	mov     a, rh[2]
+095B	40B3	mov     angle[16], a
+095C	4708	mov     a, rh[1]
+095D	40B2	mov     angle[15], a
+095E	4735	mov     a, angle[18]
+095F	408E	mov     rh[7], a
+0960	4734	mov     a, angle[17]
+0961	408A	mov     rh[3], a
+0962	4733	mov     a, angle[16]
+0963	4089	mov     rh[2], a
+0964	4732	mov     a, angle[15]
+0965	4088	mov     rh[1], a
+0966	4706	mov     a, rg
+0967	408F	mov     rh[8], a
+0968	4705	mov     a, rf
+0969	4093	mov     rh[12], a
+096A	4704	mov     a, re
+096B	4092	mov     rh[11], a
+096C	4703	mov     a, rd
+096D	4091	mov     rh[10], a
+096E	2138	call    L0138
+096F	470E	mov     a, rh[7]
+0970	40B5	mov     angle[18], a
+0971	470A	mov     a, rh[3]
+0972	40B4	mov     angle[17], a
+0973	4709	mov     a, rh[2]
+0974	40B3	mov     angle[16], a
+0975	4708	mov     a, rh[1]
+0976	40B2	mov     angle[15], a
+0977	4735	mov     a, angle[18]
+0978	408E	mov     rh[7], a
+0979	4734	mov     a, angle[17]
+097A	408A	mov     rh[3], a
+097B	4733	mov     a, angle[16]
+097C	4089	mov     rh[2], a
+097D	4732	mov     a, angle[15]
+097E	4088	mov     rh[1], a
+097F	0F3D	mov     a, 3DH
+0980	408F	mov     rh[8], a
+0981	0FBA	mov     a, BAH
+0982	4093	mov     rh[12], a
+0983	0F2E	mov     a, 2EH
+0984	4092	mov     rh[11], a
+0985	0F8C	mov     a, 8CH
+0986	4091	mov     rh[10], a
+0987	20F9	call    L00F9
+0988	470E	mov     a, rh[7]
+0989	40B5	mov     angle[18], a
+098A	470A	mov     a, rh[3]
+098B	40B4	mov     angle[17], a
+098C	4709	mov     a, rh[2]
+098D	40B3	mov     angle[16], a
+098E	4708	mov     a, rh[1]
+098F	40B2	mov     angle[15], a
+0990	4735	mov     a, angle[18]
+0991	408E	mov     rh[7], a
+0992	4734	mov     a, angle[17]
+0993	408A	mov     rh[3], a
+0994	4733	mov     a, angle[16]
+0995	4089	mov     rh[2], a
+0996	4732	mov     a, angle[15]
+0997	4088	mov     rh[1], a
+0998	4706	mov     a, rg
+0999	408F	mov     rh[8], a
+099A	4705	mov     a, rf
+099B	4093	mov     rh[12], a
+099C	4704	mov     a, re
+099D	4092	mov     rh[11], a
+099E	4703	mov     a, rd
+099F	4091	mov     rh[10], a
+09A0	2138	call    L0138
+09A1	470E	mov     a, rh[7]
+09A2	40B5	mov     angle[18], a
+09A3	470A	mov     a, rh[3]
+09A4	40B4	mov     angle[17], a
+09A5	4709	mov     a, rh[2]
+09A6	40B3	mov     angle[16], a
+09A7	4708	mov     a, rh[1]
+09A8	40B2	mov     angle[15], a
+09A9	4735	mov     a, angle[18]
+09AA	408E	mov     rh[7], a
+09AB	4734	mov     a, angle[17]
+09AC	408A	mov     rh[3], a
+09AD	4733	mov     a, angle[16]
+09AE	4089	mov     rh[2], a
+09AF	4732	mov     a, angle[15]
+09B0	4088	mov     rh[1], a
+09B1	0F3D	mov     a, 3DH
+09B2	408F	mov     rh[8], a
+09B3	0FE3	mov     a, E3H
+09B4	4093	mov     rh[12], a
+09B5	0F8E	mov     a, 8EH
+09B6	4092	mov     rh[11], a
+09B7	0F39	mov     a, 39H
+09B8	4091	mov     rh[10], a
+09B9	20F9	call    L00F9
+09BA	470E	mov     a, rh[7]
+09BB	40B5	mov     angle[18], a
+09BC	470A	mov     a, rh[3]
+09BD	40B4	mov     angle[17], a
+09BE	4709	mov     a, rh[2]
+09BF	40B3	mov     angle[16], a
+09C0	4708	mov     a, rh[1]
+09C1	40B2	mov     angle[15], a
+09C2	4735	mov     a, angle[18]
+09C3	408E	mov     rh[7], a
+09C4	4734	mov     a, angle[17]
+09C5	408A	mov     rh[3], a
+09C6	4733	mov     a, angle[16]
+09C7	4089	mov     rh[2], a
+09C8	4732	mov     a, angle[15]
+09C9	4088	mov     rh[1], a
+09CA	4706	mov     a, rg
+09CB	408F	mov     rh[8], a
+09CC	4705	mov     a, rf
+09CD	4093	mov     rh[12], a
+09CE	4704	mov     a, re
+09CF	4092	mov     rh[11], a
+09D0	4703	mov     a, rd
+09D1	4091	mov     rh[10], a
+09D2	2138	call    L0138
+09D3	470E	mov     a, rh[7]
+09D4	40B5	mov     angle[18], a
+09D5	470A	mov     a, rh[3]
+09D6	40B4	mov     angle[17], a
+09D7	4709	mov     a, rh[2]
+09D8	40B3	mov     angle[16], a
+09D9	4708	mov     a, rh[1]
+09DA	40B2	mov     angle[15], a
+09DB	4735	mov     a, angle[18]
+09DC	408E	mov     rh[7], a
+09DD	4734	mov     a, angle[17]
+09DE	408A	mov     rh[3], a
+09DF	4733	mov     a, angle[16]
+09E0	4089	mov     rh[2], a
+09E1	4732	mov     a, angle[15]
+09E2	4088	mov     rh[1], a
+09E3	0F3E	mov     a, 3EH
+09E4	408F	mov     rh[8], a
+09E5	0F12	mov     a, 12H
+09E6	4093	mov     rh[12], a
+09E7	0F48	mov     a, 48H
+09E8	4092	mov     rh[11], a
+09E9	0F18	mov     a, 18H
+09EA	4091	mov     rh[10], a
+09EB	20F9	call    L00F9
+09EC	470E	mov     a, rh[7]
+09ED	40B5	mov     angle[18], a
+09EE	470A	mov     a, rh[3]
+09EF	40B4	mov     angle[17], a
+09F0	4709	mov     a, rh[2]
+09F1	40B3	mov     angle[16], a
+09F2	4708	mov     a, rh[1]
+09F3	40B2	mov     angle[15], a
+09F4	4735	mov     a, angle[18]
+09F5	408E	mov     rh[7], a
+09F6	4734	mov     a, angle[17]
+09F7	408A	mov     rh[3], a
+09F8	4733	mov     a, angle[16]
+09F9	4089	mov     rh[2], a
+09FA	4732	mov     a, angle[15]
+09FB	4088	mov     rh[1], a
+09FC	4706	mov     a, rg
+09FD	408F	mov     rh[8], a
+09FE	4705	mov     a, rf
+09FF	4093	mov     rh[12], a
+0A00	4704	mov     a, re
+0A01	4092	mov     rh[11], a
+0A02	4703	mov     a, rd
+0A03	4091	mov     rh[10], a
+0A04	2138	call    L0138
+0A05	470E	mov     a, rh[7]
+0A06	40B5	mov     angle[18], a
+0A07	470A	mov     a, rh[3]
+0A08	40B4	mov     angle[17], a
+0A09	4709	mov     a, rh[2]
+0A0A	40B3	mov     angle[16], a
+0A0B	4708	mov     a, rh[1]
+0A0C	40B2	mov     angle[15], a
+0A0D	4735	mov     a, angle[18]
+0A0E	408E	mov     rh[7], a
+0A0F	4734	mov     a, angle[17]
+0A10	408A	mov     rh[3], a
+0A11	4733	mov     a, angle[16]
+0A12	4089	mov     rh[2], a
+0A13	4732	mov     a, angle[15]
+0A14	4088	mov     rh[1], a
+0A15	0F3E	mov     a, 3EH
+0A16	408F	mov     rh[8], a
+0A17	0F4C	mov     a, 4CH
+0A18	4093	mov     rh[12], a
+0A19	0FCC	mov     a, CCH
+0A1A	4092	mov     rh[11], a
+0A1B	0FCD	mov     a, CDH
+0A1C	4091	mov     rh[10], a
+0A1D	20F9	call    L00F9
+0A1E	470E	mov     a, rh[7]
+0A1F	40B5	mov     angle[18], a
+0A20	470A	mov     a, rh[3]
+0A21	40B4	mov     angle[17], a
+0A22	4709	mov     a, rh[2]
+0A23	40B3	mov     angle[16], a
+0A24	4708	mov     a, rh[1]
+0A25	40B2	mov     angle[15], a
+0A26	4735	mov     a, angle[18]
+0A27	408E	mov     rh[7], a
+0A28	4734	mov     a, angle[17]
+0A29	408A	mov     rh[3], a
+0A2A	4733	mov     a, angle[16]
+0A2B	4089	mov     rh[2], a
+0A2C	4732	mov     a, angle[15]
+0A2D	4088	mov     rh[1], a
+0A2E	4706	mov     a, rg
+0A2F	408F	mov     rh[8], a
+0A30	4705	mov     a, rf
+0A31	4093	mov     rh[12], a
+0A32	4704	mov     a, re
+0A33	4092	mov     rh[11], a
+0A34	4703	mov     a, rd
+0A35	4091	mov     rh[10], a
+0A36	2138	call    L0138
+0A37	470E	mov     a, rh[7]
+0A38	40B5	mov     angle[18], a
+0A39	470A	mov     a, rh[3]
+0A3A	40B4	mov     angle[17], a
+0A3B	4709	mov     a, rh[2]
+0A3C	40B3	mov     angle[16], a
+0A3D	4708	mov     a, rh[1]
+0A3E	40B2	mov     angle[15], a
+0A3F	4735	mov     a, angle[18]
+0A40	408E	mov     rh[7], a
+0A41	4734	mov     a, angle[17]
+0A42	408A	mov     rh[3], a
+0A43	4733	mov     a, angle[16]
+0A44	4089	mov     rh[2], a
+0A45	4732	mov     a, angle[15]
+0A46	4088	mov     rh[1], a
+0A47	0F3E	mov     a, 3EH
+0A48	408F	mov     rh[8], a
+0A49	0FAA	mov     a, AAH
+0A4A	4093	mov     rh[12], a
+0A4B	0FAA	mov     a, AAH
+0A4C	4092	mov     rh[11], a
+0A4D	0FAB	mov     a, ABH
+0A4E	4091	mov     rh[10], a
+0A4F	20F9	call    L00F9
+0A50	470E	mov     a, rh[7]
+0A51	40B5	mov     angle[18], a
+0A52	470A	mov     a, rh[3]
+0A53	40B4	mov     angle[17], a
+0A54	4709	mov     a, rh[2]
+0A55	40B3	mov     angle[16], a
+0A56	4708	mov     a, rh[1]
+0A57	40B2	mov     angle[15], a
+0A58	4735	mov     a, angle[18]
+0A59	408E	mov     rh[7], a
+0A5A	4734	mov     a, angle[17]
+0A5B	408A	mov     rh[3], a
+0A5C	4733	mov     a, angle[16]
+0A5D	4089	mov     rh[2], a
+0A5E	4732	mov     a, angle[15]
+0A5F	4088	mov     rh[1], a
+0A60	4706	mov     a, rg
+0A61	408F	mov     rh[8], a
+0A62	4705	mov     a, rf
+0A63	4093	mov     rh[12], a
+0A64	4704	mov     a, re
+0A65	4092	mov     rh[11], a
+0A66	4703	mov     a, rd
+0A67	4091	mov     rh[10], a
+0A68	2138	call    L0138
+0A69	470E	mov     a, rh[7]
+0A6A	4086	mov     rg, a
+0A6B	470A	mov     a, rh[3]
+0A6C	4085	mov     rf, a
+0A6D	4709	mov     a, rh[2]
+0A6E	4084	mov     re, a
+0A6F	4708	mov     a, rh[1]
+0A70	4083	mov     rd, a
+0A71	4706	mov     a, rg
+0A72	408E	mov     rh[7], a
+0A73	4705	mov     a, rf
+0A74	408A	mov     rh[3], a
+0A75	4704	mov     a, re
+0A76	4089	mov     rh[2], a
+0A77	4703	mov     a, rd
+0A78	4088	mov     rh[1], a
+0A79	0F3F	mov     a, 3FH
+0A7A	408F	mov     rh[8], a
+0A7B	0F80	mov     a, 80H
+0A7C	4093	mov     rh[12], a
+0A7D	0F00	mov     a, 0H
+0A7E	4092	mov     rh[11], a
+0A7F	0F00	mov     a, 0H
+0A80	4091	mov     rh[10], a
+0A81	20F9	call    L00F9
+0A82	470E	mov     a, rh[7]
+0A83	4086	mov     rg, a
+0A84	470A	mov     a, rh[3]
+0A85	4085	mov     rf, a
+0A86	4709	mov     a, rh[2]
+0A87	4084	mov     re, a
+0A88	4708	mov     a, rh[1]
+0A89	4083	mov     rd, a
+0A8A	4706	mov     a, rg
+0A8B	408E	mov     rh[7], a
+0A8C	4705	mov     a, rf
+0A8D	408A	mov     rh[3], a
+0A8E	4704	mov     a, re
+0A8F	4089	mov     rh[2], a
+0A90	4703	mov     a, rd
+0A91	4088	mov     rh[1], a
+0A92	4706	mov     a, rg
+0A93	408F	mov     rh[8], a
+0A94	4705	mov     a, rf
+0A95	4093	mov     rh[12], a
+0A96	4704	mov     a, re
+0A97	4092	mov     rh[11], a
+0A98	4703	mov     a, rd
+0A99	4091	mov     rh[10], a
+0A9A	20F9	call    L00F9
+0A9B	470E	mov     a, rh[7]
+0A9C	4086	mov     rg, a
+0A9D	470A	mov     a, rh[3]
+0A9E	4085	mov     rf, a
+0A9F	4709	mov     a, rh[2]
+0AA0	4084	mov     re, a
+0AA1	4708	mov     a, rh[1]
+0AA2	4083	mov     rd, a
+0AA3	4706	mov     a, rg
+0AA4	408E	mov     rh[7], a
+0AA5	4705	mov     a, rf
+0AA6	408A	mov     rh[3], a
+0AA7	4704	mov     a, re
+0AA8	4089	mov     rh[2], a
+0AA9	4703	mov     a, rd
+0AAA	4088	mov     rh[1], a
+0AAB	4739	mov     a, angle[22]
+0AAC	408F	mov     rh[8], a
+0AAD	4738	mov     a, angle[21]
+0AAE	4093	mov     rh[12], a
+0AAF	4737	mov     a, angle[20]
+0AB0	4092	mov     rh[11], a
+0AB1	4736	mov     a, angle[19]
+0AB2	4091	mov     rh[10], a
+0AB3	2138	call    L0138
+0AB4	470E	mov     a, rh[7]
+0AB5	4086	mov     rg, a
+0AB6	470A	mov     a, rh[3]
+0AB7	4085	mov     rf, a
+0AB8	4709	mov     a, rh[2]
+0AB9	4084	mov     re, a
+0ABA	4708	mov     a, rh[1]
+0ABB	4083	mov     rd, a
+0ABC	0FFF	mov     a, FFH
+0ABD	4330	add     a, angle[13]
+0ABE	4081	mov     rb, a
+0ABF	0FFF	mov     a, FFH
+0AC0	5331	adc     a, angle[14]
+0AC1	4082	mov     rc, a
+0AC2	4702	mov     a, rc
+0AC3	4089	mov     rh[2], a
+0AC4	4701	mov     a, rb
+0AC5	4088	mov     rh[1], a
+0AC6	21B4	call    L01B4
+0AC7	470E	mov     a, rh[7]
+0AC8	40B9	mov     angle[22], a
+0AC9	470A	mov     a, rh[3]
+0ACA	40B8	mov     angle[21], a
+0ACB	4709	mov     a, rh[2]
+0ACC	40B7	mov     angle[20], a
+0ACD	4708	mov     a, rh[1]
+0ACE	40B6	mov     angle[19], a
+0ACF	4739	mov     a, angle[22]
+0AD0	408E	mov     rh[7], a
+0AD1	4738	mov     a, angle[21]
+0AD2	408A	mov     rh[3], a
+0AD3	4737	mov     a, angle[20]
+0AD4	4089	mov     rh[2], a
+0AD5	4736	mov     a, angle[19]
+0AD6	4088	mov     rh[1], a
+0AD7	0F3F	mov     a, 3FH
+0AD8	408F	mov     rh[8], a
+0AD9	0F31	mov     a, 31H
+0ADA	4093	mov     rh[12], a
+0ADB	0F72	mov     a, 72H
+0ADC	4092	mov     rh[11], a
+0ADD	0F18	mov     a, 18H
+0ADE	4091	mov     rh[10], a
+0ADF	2138	call    L0138
+0AE0	470E	mov     a, rh[7]
+0AE1	40B9	mov     angle[22], a
+0AE2	470A	mov     a, rh[3]
+0AE3	40B8	mov     angle[21], a
+0AE4	4709	mov     a, rh[2]
+0AE5	40B7	mov     angle[20], a
+0AE6	4708	mov     a, rh[1]
+0AE7	40B6	mov     angle[19], a
+0AE8	4706	mov     a, rg
+0AE9	408E	mov     rh[7], a
+0AEA	4705	mov     a, rf
+0AEB	408A	mov     rh[3], a
+0AEC	4704	mov     a, re
+0AED	4089	mov     rh[2], a
+0AEE	4703	mov     a, rd
+0AEF	4088	mov     rh[1], a
+0AF0	4739	mov     a, angle[22]
+0AF1	408F	mov     rh[8], a
+0AF2	4738	mov     a, angle[21]
+0AF3	4093	mov     rh[12], a
+0AF4	4737	mov     a, angle[20]
+0AF5	4092	mov     rh[11], a
+0AF6	4736	mov     a, angle[19]
+0AF7	4091	mov     rh[10], a
+0AF8	20F9	call    L00F9
+0AF9	470E	mov     a, rh[7]
+0AFA	4086	mov     rg, a
+0AFB	470A	mov     a, rh[3]
+0AFC	4085	mov     rf, a
+0AFD	4709	mov     a, rh[2]
+0AFE	4084	mov     re, a
+0AFF	4708	mov     a, rh[1]
+0B00	4083	mov     rd, a
+				L0B01:
+0B01	4703	mov     a, rd
+0B02	4080	mov     ra, a
+0B03	4704	mov     a, re
+0B04	4081	mov     rb, a
+0B05	4705	mov     a, rf
+0B06	4082	mov     rc, a
+0B07	4706	mov     a, rg
+0B08	4083	mov     rd, a
+0B09	0003	ret
+				L0B0A:
+0B0A	473A	mov     a, angle[23]
+0B0B	0A00	sub     a, 0H
+0B0C	473B	mov     a, angle[24]
+0B0D	0800	sbc     a, 0H
+0B0E	473C	mov     a, angle[25]
+0B0F	0800	sbc     a, 0H
+0B10	473D	mov     a, angle[26]
+0B11	0800	sbc     a, 0H
+0B12	3B0A	snz     CZ
+0B13	6B2E	jmp     L0B2E
+0B14	4741	mov     a, angle[30]
+0B15	408E	mov     rh[7], a
+0B16	4740	mov     a, angle[29]
+0B17	408A	mov     rh[3], a
+0B18	473F	mov     a, angle[28]
+0B19	4089	mov     rh[2], a
+0B1A	473E	mov     a, angle[27]
+0B1B	4088	mov     rh[1], a
+0B1C	0F00	mov     a, 0H
+0B1D	408F	mov     rh[8], a
+0B1E	0F00	mov     a, 0H
+0B1F	4093	mov     rh[12], a
+0B20	0F00	mov     a, 0H
+0B21	4092	mov     rh[11], a
+0B22	0F00	mov     a, 0H
+0B23	4091	mov     rh[10], a
+0B24	20F7	call    L00F7
+0B25	7F8E	sz      rh[7].7
+0B26	6BBF	jmp     L0BBF
+0B27	470E	mov     a, rh[7]
+0B28	450A	or      a, rh[3]
+0B29	4509	or      a, rh[2]
+0B2A	4508	or      a, rh[1]
+0B2B	3D0A	sz      Z
+0B2C	6BBF	jmp     L0BBF
+0B2D	6C00	jmp     L0C00
+				L0B2E:
+0B2E	473E	mov     a, angle[27]
+0B2F	0A00	sub     a, 0H
+0B30	473F	mov     a, angle[28]
+0B31	0800	sbc     a, 0H
+0B32	4740	mov     a, angle[29]
+0B33	0800	sbc     a, 0H
+0B34	4741	mov     a, angle[30]
+0B35	0800	sbc     a, 0H
+0B36	3F0A	sz      CZ
+0B37	6C05	jmp     L0C05
+0B38	473D	mov     a, angle[26]
+0B39	408E	mov     rh[7], a
+0B3A	473C	mov     a, angle[25]
+0B3B	408A	mov     rh[3], a
+0B3C	473B	mov     a, angle[24]
+0B3D	4089	mov     rh[2], a
+0B3E	473A	mov     a, angle[23]
+0B3F	4088	mov     rh[1], a
+0B40	0F00	mov     a, 0H
+0B41	408F	mov     rh[8], a
+0B42	0F00	mov     a, 0H
+0B43	4093	mov     rh[12], a
+0B44	0F00	mov     a, 0H
+0B45	4092	mov     rh[11], a
+0B46	0F00	mov     a, 0H
+0B47	4091	mov     rh[10], a
+0B48	20F7	call    L00F7
+0B49	7F8E	sz      rh[7].7
+0B4A	6B4C	jmp     L0B4C
+0B4B	6BCC	jmp     L0BCC
+				L0B4C:
+0B4C	4741	mov     a, angle[30]
+0B4D	408E	mov     rh[7], a
+0B4E	4740	mov     a, angle[29]
+0B4F	408A	mov     rh[3], a
+0B50	473F	mov     a, angle[28]
+0B51	4089	mov     rh[2], a
+0B52	473E	mov     a, angle[27]
+0B53	4088	mov     rh[1], a
+0B54	0F4F	mov     a, 4FH
+0B55	408F	mov     rh[8], a
+0B56	0F00	mov     a, 0H
+0B57	4093	mov     rh[12], a
+0B58	0F00	mov     a, 0H
+0B59	4092	mov     rh[11], a
+0B5A	0F00	mov     a, 0H
+0B5B	4091	mov     rh[10], a
+0B5C	20F7	call    L00F7
+0B5D	7B8E	snz     rh[7].7
+0B5E	6B71	jmp     L0B71
+0B5F	4741	mov     a, angle[30]
+0B60	408E	mov     rh[7], a
+0B61	4740	mov     a, angle[29]
+0B62	408A	mov     rh[3], a
+0B63	473F	mov     a, angle[28]
+0B64	4089	mov     rh[2], a
+0B65	473E	mov     a, angle[27]
+0B66	4088	mov     rh[1], a
+0B67	2091	call    L0091
+0B68	470E	mov     a, rh[7]
+0B69	4086	mov     rg, a
+0B6A	470A	mov     a, rh[3]
+0B6B	4085	mov     rf, a
+0B6C	4709	mov     a, rh[2]
+0B6D	4084	mov     re, a
+0B6E	4708	mov     a, rh[1]
+0B6F	4083	mov     rd, a
+0B70	6BA3	jmp     L0BA3
+				L0B71:
+0B71	4741	mov     a, angle[30]
+0B72	408E	mov     rh[7], a
+0B73	4740	mov     a, angle[29]
+0B74	408A	mov     rh[3], a
+0B75	473F	mov     a, angle[28]
+0B76	4089	mov     rh[2], a
+0B77	473E	mov     a, angle[27]
+0B78	4088	mov     rh[1], a
+0B79	0F4F	mov     a, 4FH
+0B7A	408F	mov     rh[8], a
+0B7B	0F00	mov     a, 0H
+0B7C	4093	mov     rh[12], a
+0B7D	0F00	mov     a, 0H
+0B7E	4092	mov     rh[11], a
+0B7F	0F00	mov     a, 0H
+0B80	4091	mov     rh[10], a
+0B81	20F7	call    L00F7
+0B82	470E	mov     a, rh[7]
+0B83	4086	mov     rg, a
+0B84	470A	mov     a, rh[3]
+0B85	4085	mov     rf, a
+0B86	4709	mov     a, rh[2]
+0B87	4084	mov     re, a
+0B88	4708	mov     a, rh[1]
+0B89	4083	mov     rd, a
+0B8A	4706	mov     a, rg
+0B8B	408E	mov     rh[7], a
+0B8C	4705	mov     a, rf
+0B8D	408A	mov     rh[3], a
+0B8E	4704	mov     a, re
+0B8F	4089	mov     rh[2], a
+0B90	4703	mov     a, rd
+0B91	4088	mov     rh[1], a
+0B92	2091	call    L0091
+0B93	470E	mov     a, rh[7]
+0B94	4086	mov     rg, a
+0B95	470A	mov     a, rh[3]
+0B96	4085	mov     rf, a
+0B97	4709	mov     a, rh[2]
+0B98	4084	mov     re, a
+0B99	4708	mov     a, rh[1]
+0B9A	4083	mov     rd, a
+0B9B	0F80	mov     a, 80H
+0B9C	4486	xorm    a, rg
+0B9D	0F00	mov     a, 0H
+0B9E	4485	xorm    a, rf
+0B9F	0F00	mov     a, 0H
+0BA0	4484	xorm    a, re
+0BA1	0F00	mov     a, 0H
+0BA2	4483	xorm    a, rd
+				L0BA3:
+0BA3	4706	mov     a, rg
+0BA4	408E	mov     rh[7], a
+0BA5	4705	mov     a, rf
+0BA6	408A	mov     rh[3], a
+0BA7	4704	mov     a, re
+0BA8	4089	mov     rh[2], a
+0BA9	4703	mov     a, rd
+0BAA	4088	mov     rh[1], a
+0BAB	740C	clr     rh[5].0
+0BAC	2135	call    L0135
+0BAD	470E	mov     a, rh[7]
+0BAE	40C5	mov     angle[34], a
+0BAF	470A	mov     a, rh[3]
+0BB0	40C4	mov     angle[33], a
+0BB1	4709	mov     a, rh[2]
+0BB2	40C3	mov     angle[32], a
+0BB3	4708	mov     a, rh[1]
+0BB4	40C2	mov     angle[31], a
+0BB5	4742	mov     a, angle[31]
+0BB6	423E	sub     a, angle[27]
+0BB7	4743	mov     a, angle[32]
+0BB8	523F	sbc     a, angle[28]
+0BB9	4744	mov     a, angle[33]
+0BBA	5240	sbc     a, angle[29]
+0BBB	4745	mov     a, angle[34]
+0BBC	5241	sbc     a, angle[30]
+0BBD	3F0A	sz      CZ
+0BBE	6BC3	jmp     L0BC3
+				L0BBF:
+0BBF	0F21	mov     a, 21H
+0BC0	40D7	mov     Hall200ms[1], a
+0BC1	5F58	clr     Hall200ms[2]
+0BC2	6C00	jmp     L0C00
+				L0BC3:
+0BC3	4703	mov     a, rd
+0BC4	0E01	and     a, 1H
+0BC5	40C2	mov     angle[31], a
+0BC6	473C	mov     a, angle[25]
+0BC7	453D	or      a, angle[26]
+0BC8	0F80	mov     a, 80H
+0BC9	390A	snz     Z
+0BCA	44BD	xorm    a, angle[26]
+0BCB	6BCD	jmp     L0BCD
+				L0BCC:
+0BCC	5F42	clr     angle[31]
+				L0BCD:
+0BCD	473A	mov     a, angle[23]
+0BCE	40AC	mov     angle[9], a
+0BCF	473B	mov     a, angle[24]
+0BD0	40AD	mov     angle[10], a
+0BD1	473C	mov     a, angle[25]
+0BD2	40AE	mov     angle[11], a
+0BD3	473D	mov     a, angle[26]
+0BD4	40AF	mov     angle[12], a
+0BD5	600E	call    L080E
+0BD6	4703	mov     a, rd
+0BD7	408E	mov     rh[7], a
+0BD8	4702	mov     a, rc
+0BD9	408A	mov     rh[3], a
+0BDA	4701	mov     a, rb
+0BDB	4089	mov     rh[2], a
+0BDC	4700	mov     a, ra
+0BDD	4088	mov     rh[1], a
+0BDE	4741	mov     a, angle[30]
+0BDF	408F	mov     rh[8], a
+0BE0	4740	mov     a, angle[29]
+0BE1	4093	mov     rh[12], a
+0BE2	473F	mov     a, angle[28]
+0BE3	4092	mov     rh[11], a
+0BE4	473E	mov     a, angle[27]
+0BE5	4091	mov     rh[10], a
+0BE6	2138	call    L0138
+0BE7	470E	mov     a, rh[7]
+0BE8	40AB	mov     angle[8], a
+0BE9	470A	mov     a, rh[3]
+0BEA	40AA	mov     angle[7], a
+0BEB	4709	mov     a, rh[2]
+0BEC	40A9	mov     angle[6], a
+0BED	4708	mov     a, rh[1]
+0BEE	40A8	mov     angle[5], a
+0BEF	23E8	call    L03E8
+0BF0	4703	mov     a, rd
+0BF1	4086	mov     rg, a
+0BF2	4702	mov     a, rc
+0BF3	4085	mov     rf, a
+0BF4	4701	mov     a, rb
+0BF5	4084	mov     re, a
+0BF6	4700	mov     a, ra
+0BF7	4083	mov     rd, a
+0BF8	5E42	snz     angle[31]
+0BF9	6C0B	jmp     L0C0B
+0BFA	4705	mov     a, rf
+0BFB	4506	or      a, rg
+0BFC	0F80	mov     a, 80H
+0BFD	390A	snz     Z
+0BFE	4486	xorm    a, rg
+0BFF	6C0B	jmp     L0C0B
+				L0C00:
+0C00	5F03	clr     rd
+0C01	5F04	clr     re
+0C02	5F05	clr     rf
+0C03	5F06	clr     rg
+0C04	6C0B	jmp     L0C0B
+				L0C05:
+0C05	5F03	clr     rd
+0C06	5F04	clr     re
+0C07	0F80	mov     a, 80H
+0C08	4085	mov     rf, a
+0C09	0F3F	mov     a, 3FH
+0C0A	4086	mov     rg, a
+				L0C0B:
+0C0B	4703	mov     a, rd
+0C0C	4080	mov     ra, a
+0C0D	4704	mov     a, re
+0C0E	4081	mov     rb, a
+0C0F	4705	mov     a, rf
+0C10	4082	mov     rc, a
+0C11	4706	mov     a, rg
+0C12	4083	mov     rd, a
+0C13	0003	ret
+				L0C14:
+0C14	1483	inc     MP1L
+				L0C15:
+0C15	0702	mov     a, [02H]
+0C16	0003	ret
+				;255	}
+				;256	
+				;257	void TranHall(void)
+				;258	{
+				;259		//u8 HalldataH,HalldataL;
+				;260		//HalldataH = (u8)((HallData>>8) & 0xff);
+				;261		//HalldataL = (u8)(HallData & 0xff);
+				;262		//HallSUM = HallData + HallHead;
+				;263		//HallCRC = ~HallSUM + Head;   ///				;264		//HallCRC++;
+				;265		HallCRC = HallHead+HallData;
+				_TranHall:
+				_TranHall:
+020E	475F	mov     a, HallHead[0]
+020F	4080	mov     ra, a
+0210	474C	mov     a, HallData[0]
+0211	4300	add     a, ra
+0212	40DD	mov     HallCRC[0], a
+				;266		UARTTxData(HallHead);
+0213	4700	mov     a, ra
+0214	21E1	call    _UARTTxData
+				;267		UARTTxData(HallData);
+0215	474C	mov     a, HallData[0]
+0216	21E1	call    _UARTTxData
+				;268		UARTTxData(Axcount);
+0217	4750	mov     a, Axcount[0]
+0218	21E1	call    _UARTTxData
+				;269		UARTTxData(Hacount);
+0219	4751	mov     a, Hacount[0]
+021A	21E1	call    _UARTTxData
+				;270		UARTTxData(HallCRC);
+021B	475D	mov     a, HallCRC[0]
+021C	21E1	call    _UARTTxData
+021D	0003	ret
+				;271	}
+				;272	
+				;273	void ShiftRightArray(u16 Array[])
+				;274	{
+				;275		for(i=5;i>0;i--)
+				_ShiftRightArray:
+				_ShiftRightArray:
+0FE1	0F05	mov     a, 5H
+0FE2	40D4	mov     i[0], a
+0FE3	0F05	mov     a, 5H
+0FE4	4080	mov     ra, a
+1005	5780	sdz     ra
+1006	6FE5	jmp     _L34
+				;276		{
+				;277			XArr[i]=XArr[i-1];
+				_L34:
+0FE5	4700	mov     a, ra
+0FE6	4081	mov     rb, a
+0FE7	5F02	clr     rc
+0FE8	340A	clr     C
+0FE9	5A01	rlca    rb
+0FEA	4083	mov     rd, a
+0FEB	5A02	rlca    rc
+0FEC	4084	mov     re, a
+0FED	0FEB	mov     a, EBH
+0FEE	4303	add     a, rd
+0FEF	0083	mov     MP1L, a
+0FF0	0F00	mov     a, 0H
+0FF1	5304	adc     a, re
+0FF2	0084	mov     MP1H, a
+0FF3	6415	call    L0C15
+0FF4	4083	mov     rd, a
+0FF5	6414	call    L0C14
+0FF6	4084	mov     re, a
+0FF7	340A	clr     C
+0FF8	5A81	rlc     rb
+0FF9	5A82	rlc     rc
+0FFA	0FED	mov     a, EDH
+0FFB	4301	add     a, rb
+0FFC	0083	mov     MP1L, a
+0FFD	0F00	mov     a, 0H
+0FFE	5302	adc     a, rc
+0FFF	0084	mov     MP1H, a
+1000	4703	mov     a, rd
+1001	0082	mov     [02H], a
+1002	1483	inc     MP1L
+1003	4704	mov     a, re
+1004	0082	mov     [02H], a
+				;278		}
+				;279	 	XArr[0] = AxisX;
+1007	4759	mov     a, AxisX[0]
+1008	40ED	mov     XArr[0], a
+1009	475A	mov     a, AxisX[1]
+100A	40EE	mov     XArr[1], a
+				;280	 	for(i = 0; i < 5; i++)
+100B	5F54	clr     i[0]
+100C	5F00	clr     ra
+1028	5480	inc     ra
+1029	0F04	mov     a, 4H
+102A	4200	sub     a, ra
+102B	3C0A	sz      C
+102C	A80D	jmp     _L36
+102D	4700	mov     a, ra
+102E	40D4	mov     i[0], a
+102F	0003	ret
+				;281		{
+				;282			XArrSort[i] = Array[i];
+				_L36:
+100D	4700	mov     a, ra
+100E	4081	mov     rb, a
+100F	5F02	clr     rc
+1010	340A	clr     C
+1011	5A81	rlc     rb
+1012	5A82	rlc     rc
+1013	4701	mov     a, rb
+1014	431D	add     a, Array[0]
+1015	0083	mov     MP1L, a
+1016	4702	mov     a, rc
+1017	531E	adc     a, Array[1]
+1018	0084	mov     MP1H, a
+1019	6415	call    L0C15
+101A	4083	mov     rd, a
+101B	6414	call    L0C14
+101C	4084	mov     re, a
+101D	0F80	mov     a, 80H
+101E	4301	add     a, rb
+101F	0083	mov     MP1L, a
+1020	0F02	mov     a, 2H
+1021	5302	adc     a, rc
+1022	0084	mov     MP1H, a
+1023	4703	mov     a, rd
+1024	0082	mov     [02H], a
+1025	1483	inc     MP1L
+1026	4704	mov     a, re
+1027	0082	mov     [02H], a
+				;283		}
+				;284	}
+				;285	
+				;286	void AxisCal()
+				;287	{
+				;288		AxisX = (u16)(AxisXH << 8);
+				_AxisCal:
+				_AxisCal:
+1030	4764	mov     a, AxisXH[0]
+1031	4082	mov     rc, a
+1032	5F01	clr     rb
+				;289		AxisX += AxisXL;
+1033	4763	mov     a, AxisXL[0]
+1034	4301	add     a, rb
+1035	40D9	mov     AxisX[0], a
+1036	1F05	clr     ACC
+1037	5302	adc     a, rc
+1038	40DA	mov     AxisX[1], a
+1039	0003	ret
+				;290	}
+				;291	
+				;292	void PutValueArray(u16 Array[])
+				;293	{
+				;294		for(i = 0; i < 5; i++)
+				_PutValueArray:
+				_PutValueArray:
+107F	5F54	clr     i[0]
+1080	A897	jmp     _L40
+1095	5400	inca    ra
+1096	40D4	mov     i[0], a
+				_L40:
+1097	0F04	mov     a, 4H
+1098	4254	sub     a, i[0]
+1099	3C0A	sz      C
+109A	A881	jmp     _L41
+109B	0003	ret
+				;295		{
+				;296			AxisCal();
+				_L41:
+1081	A030	call    _AxisCal
+				;297			Array[i] = AxisX;
+1082	4754	mov     a, i[0]
+1083	4080	mov     ra, a
+1084	4700	mov     a, ra
+1085	4081	mov     rb, a
+1086	5F02	clr     rc
+1087	340A	clr     C
+1088	5A81	rlc     rb
+1089	5A82	rlc     rc
+108A	4701	mov     a, rb
+108B	431D	add     a, Array[0]
+108C	0083	mov     MP1L, a
+108D	4702	mov     a, rc
+108E	531E	adc     a, Array[1]
+108F	0084	mov     MP1H, a
+1090	4759	mov     a, AxisX[0]
+1091	0082	mov     [02H], a
+1092	1483	inc     MP1L
+1093	475A	mov     a, AxisX[1]
+1094	0082	mov     [02H], a
+				;298		}
+				;299	}
+				;300	
+				;301	void VariancePulsByLoad(u16 SortArray[])
+				;302	{
+				;303		u16 Sum1, Sum2, Total;
+				;304		
+				;305		Sum1 = pow(SortArray[1] - SortArray[2], 2);
+				_VariancePulsByLoad:
+				_VariancePulsByLoad:
+0C17	5F3E	clr     angle[27]
+0C18	5F3F	clr     angle[28]
+0C19	5F40	clr     angle[29]
+0C1A	0F40	mov     a, 40H
+0C1B	40C1	mov     angle[30], a
+0C1C	4746	mov     a, SortArray[0]
+0C1D	4083	mov     rd, a
+0C1E	4747	mov     a, SortArray[1]
+0C1F	4084	mov     re, a
+0C20	0F02	mov     a, 2H
+0C21	4303	add     a, rd
+0C22	0083	mov     MP1L, a
+0C23	0F00	mov     a, 0H
+0C24	5304	adc     a, re
+0C25	0084	mov     MP1H, a
+0C26	6415	call    L0C15
+0C27	4081	mov     rb, a
+0C28	6414	call    L0C14
+0C29	4082	mov     rc, a
+0C2A	0F04	mov     a, 4H
+0C2B	4303	add     a, rd
+0C2C	0083	mov     MP1L, a
+0C2D	0F00	mov     a, 0H
+0C2E	5304	adc     a, re
+0C2F	0084	mov     MP1H, a
+0C30	6415	call    L0C15
+0C31	4083	mov     rd, a
+0C32	6414	call    L0C14
+0C33	4084	mov     re, a
+0C34	4701	mov     a, rb
+0C35	4203	sub     a, rd
+0C36	4081	mov     rb, a
+0C37	4702	mov     a, rc
+0C38	5204	sbc     a, re
+0C39	4082	mov     rc, a
+0C3A	4702	mov     a, rc
+0C3B	4089	mov     rh[2], a
+0C3C	4701	mov     a, rb
+0C3D	4088	mov     rh[1], a
+0C3E	740C	clr     rh[5].0
+0C3F	21BD	call    L01BD
+0C40	470E	mov     a, rh[7]
+0C41	40BD	mov     angle[26], a
+0C42	470A	mov     a, rh[3]
+0C43	40BC	mov     angle[25], a
+0C44	4709	mov     a, rh[2]
+0C45	40BB	mov     angle[24], a
+0C46	4708	mov     a, rh[1]
+0C47	40BA	mov     angle[23], a
+0C48	630A	call    L0B0A
+0C49	4700	mov     a, ra
+0C4A	40C8	mov     SortArray[2], a
+0C4B	4701	mov     a, rb
+0C4C	40C9	mov     SortArray[3], a
+0C4D	4702	mov     a, rc
+0C4E	40CA	mov     SortArray[4], a
+0C4F	4703	mov     a, rd
+0C50	40CB	mov     SortArray[5], a
+0C94	474B	mov     a, SortArray[5]
+0C95	408E	mov     rh[7], a
+0C96	474A	mov     a, SortArray[4]
+0C97	408A	mov     rh[3], a
+0C98	4749	mov     a, SortArray[3]
+0C99	4089	mov     rh[2], a
+0C9A	4748	mov     a, SortArray[2]
+0C9B	4088	mov     rh[1], a
+0C9C	2091	call    L0091
+0C9D	470E	mov     a, rh[7]
+0C9E	40CB	mov     SortArray[5], a
+0C9F	470A	mov     a, rh[3]
+0CA0	40CA	mov     SortArray[4], a
+0CA1	4709	mov     a, rh[2]
+0CA2	40C9	mov     SortArray[3], a
+0CA3	4708	mov     a, rh[1]
+0CA4	40C8	mov     SortArray[2], a
+				;306		Sum2 = pow(SortArray[3] - SortArray[2], 2);
+0C51	5F3E	clr     angle[27]
+0C52	5F3F	clr     angle[28]
+0C53	5F40	clr     angle[29]
+0C54	0F40	mov     a, 40H
+0C55	40C1	mov     angle[30], a
+0C56	4746	mov     a, SortArray[0]
+0C57	4083	mov     rd, a
+0C58	4747	mov     a, SortArray[1]
+0C59	4084	mov     re, a
+0C5A	0F06	mov     a, 6H
+0C5B	4303	add     a, rd
+0C5C	0083	mov     MP1L, a
+0C5D	0F00	mov     a, 0H
+0C5E	5304	adc     a, re
+0C5F	0084	mov     MP1H, a
+0C60	6415	call    L0C15
+0C61	4081	mov     rb, a
+0C62	6414	call    L0C14
+0C63	4082	mov     rc, a
+0C64	0F04	mov     a, 4H
+0C65	4303	add     a, rd
+0C66	0083	mov     MP1L, a
+0C67	0F00	mov     a, 0H
+0C68	5304	adc     a, re
+0C69	0084	mov     MP1H, a
+0C6A	6415	call    L0C15
+0C6B	4083	mov     rd, a
+0C6C	6414	call    L0C14
+0C6D	4084	mov     re, a
+0C6E	4701	mov     a, rb
+0C6F	4203	sub     a, rd
+0C70	4081	mov     rb, a
+0C71	4702	mov     a, rc
+0C72	5204	sbc     a, re
+0C73	4082	mov     rc, a
+0C74	4702	mov     a, rc
+0C75	4089	mov     rh[2], a
+0C76	4701	mov     a, rb
+0C77	4088	mov     rh[1], a
+0C78	740C	clr     rh[5].0
+0C79	21BD	call    L01BD
+0C7A	470E	mov     a, rh[7]
+0C7B	40BD	mov     angle[26], a
+0C7C	470A	mov     a, rh[3]
+0C7D	40BC	mov     angle[25], a
+0C7E	4709	mov     a, rh[2]
+0C7F	40BB	mov     angle[24], a
+0C80	4708	mov     a, rh[1]
+0C81	40BA	mov     angle[23], a
+0C82	630A	call    L0B0A
+0C83	4703	mov     a, rd
+0C84	408E	mov     rh[7], a
+0C85	4702	mov     a, rc
+0C86	408A	mov     rh[3], a
+0C87	4701	mov     a, rb
+0C88	4089	mov     rh[2], a
+0C89	4700	mov     a, ra
+0C8A	4088	mov     rh[1], a
+0C8B	2091	call    L0091
+0C8C	470E	mov     a, rh[7]
+0C8D	4086	mov     rg, a
+0C8E	470A	mov     a, rh[3]
+0C8F	4085	mov     rf, a
+0C90	4709	mov     a, rh[2]
+0C91	4084	mov     re, a
+0C92	4708	mov     a, rh[1]
+0C93	4083	mov     rd, a
+				;307		Total = sqrt(Sum1 + Sum2);
+0CA5	4748	mov     a, SortArray[2]
+0CA6	4383	addm    a, rd
+0CA7	4749	mov     a, SortArray[3]
+0CA8	5384	adcm    a, re
+0CA9	4704	mov     a, re
+0CAA	4089	mov     rh[2], a
+0CAB	4703	mov     a, rd
+0CAC	4088	mov     rh[1], a
+0CAD	740C	clr     rh[5].0
+0CAE	21BD	call    L01BD
+0CAF	470E	mov     a, rh[7]
+0CB0	40A9	mov     angle[6], a
+0CB1	470A	mov     a, rh[3]
+0CB2	40A8	mov     angle[5], a
+0CB3	4709	mov     a, rh[2]
+0CB4	40A7	mov     angle[4], a
+0CB5	4708	mov     a, rh[1]
+0CB6	40A6	mov     angle[3], a
+0CB7	2288	call    L0288
+0CB8	4703	mov     a, rd
+0CB9	408E	mov     rh[7], a
+0CBA	4702	mov     a, rc
+0CBB	408A	mov     rh[3], a
+0CBC	4701	mov     a, rb
+0CBD	4089	mov     rh[2], a
+0CBE	4700	mov     a, ra
+0CBF	4088	mov     rh[1], a
+0CC0	2091	call    L0091
+0CC1	470E	mov     a, rh[7]
+0CC2	4086	mov     rg, a
+0CC3	470A	mov     a, rh[3]
+0CC4	4085	mov     rf, a
+0CC5	4709	mov     a, rh[2]
+0CC6	4084	mov     re, a
+0CC7	4708	mov     a, rh[1]
+0CC8	4083	mov     rd, a
+0CC9	4703	mov     a, rd
+0CCA	40CD	mov     SendX[0], a
+0CCB	4704	mov     a, re
+0CCC	40CE	mov     SendX[1], a
+0CCD	0003	ret
+				L0CCE:
+0CCE	5F21	clr     del[3]
+0CCF	5F22	clr     del[4]
+				L0CD0:
+0CD0	781F	snz     del[1].0
+0CD1	6CD6	jmp     L0CD6
+0CD2	471D	mov     a, Array
+0CD3	43A1	addm    a, del[3]
+0CD4	471E	mov     a, del
+0CD5	53A2	adcm    a, del[4]
+				L0CD6:
+0CD6	340A	clr     C
+0CD7	5A9D	rlc     Array
+0CD8	5A9E	rlc     del
+0CD9	340A	clr     C
+0CDA	5BA0	rrc     del[2]
+0CDB	5B9F	rrc     del[1]
+0CDC	471F	mov     a, del[1]
+0CDD	4520	or      a, del[2]
+0CDE	390A	snz     Z
+0CDF	6CD0	jmp     L0CD0
+0CE0	0003	ret
+				L0CE1:
+0CE1	4721	mov     a, del[3]
+0CE2	4522	or      a, del[4]
+0CE3	3D0A	sz      Z
+0CE4	6D0F	jmp     L0D0F
+				L0CE5:
+0CE5	471D	mov     a, Array
+0CE6	4081	mov     rb, a
+0CE7	471E	mov     a, del
+0CE8	4082	mov     rc, a
+0CE9	4701	mov     a, rb
+0CEA	0083	mov     MP1L, a
+0CEB	4702	mov     a, rc
+0CEC	0084	mov     MP1H, a
+0CED	6415	call    L0C15
+0CEE	4080	mov     ra, a
+0CEF	471F	mov     a, del[1]
+0CF0	0083	mov     MP1L, a
+0CF1	4720	mov     a, del[2]
+0CF2	0084	mov     MP1H, a
+0CF3	6415	call    L0C15
+0CF4	4083	mov     rd, a
+0CF5	4701	mov     a, rb
+0CF6	0083	mov     MP1L, a
+0CF7	4702	mov     a, rc
+0CF8	0084	mov     MP1H, a
+0CF9	4703	mov     a, rd
+0CFA	0082	mov     [02H], a
+0CFB	549D	inc     Array
+0CFC	3D0A	sz      Z
+0CFD	549E	inc     del
+0CFE	471F	mov     a, del[1]
+0CFF	0083	mov     MP1L, a
+0D00	4720	mov     a, del[2]
+0D01	0084	mov     MP1H, a
+0D02	4700	mov     a, ra
+0D03	0082	mov     [02H], a
+0D04	549F	inc     del[1]
+0D05	3D0A	sz      Z
+0D06	54A0	inc     del[2]
+0D07	0FFF	mov     a, FFH
+0D08	43A1	addm    a, del[3]
+0D09	0FFF	mov     a, FFH
+0D0A	53A2	adcm    a, del[4]
+0D0B	4721	mov     a, del[3]
+0D0C	4522	or      a, del[4]
+0D0D	390A	snz     Z
+0D0E	6CE5	jmp     L0CE5
+				L0D0F:
+0D0F	0003	ret
+				L0D10:
+0D10	471D	mov     a, Array
+0D11	0083	mov     MP1L, a
+0D12	471E	mov     a, del
+0D13	0084	mov     MP1H, a
+0D14	6415	call    L0C15
+0D15	4081	mov     rb, a
+0D16	6414	call    L0C14
+0D17	4082	mov     rc, a
+0D18	471F	mov     a, del[1]
+0D19	0083	mov     MP1L, a
+0D1A	4720	mov     a, del[2]
+0D1B	0084	mov     MP1H, a
+0D1C	6415	call    L0C15
+0D1D	4083	mov     rd, a
+0D1E	6414	call    L0C14
+0D1F	4084	mov     re, a
+0D20	4701	mov     a, rb
+0D21	4203	sub     a, rd
+0D22	4081	mov     rb, a
+0D23	4702	mov     a, rc
+0D24	5204	sbc     a, re
+0D25	4082	mov     rc, a
+0D26	4701	mov     a, rb
+0D27	4080	mov     ra, a
+0D28	4702	mov     a, rc
+0D29	4081	mov     rb, a
+0D2A	0003	ret
+				L0D2B:
+0D2B	4729	mov     a, angle[6]
+0D2C	409D	mov     Array, a
+0D2D	472A	mov     a, angle[7]
+0D2E	409E	mov     del, a
+0D2F	4725	mov     a, angle[2]
+0D30	409F	mov     del[1], a
+0D31	4726	mov     a, angle[3]
+0D32	40A0	mov     del[2], a
+0D33	64CE	call    L0CCE
+0D34	4721	mov     a, del[3]
+0D35	4081	mov     rb, a
+0D36	4722	mov     a, del[4]
+0D37	4082	mov     rc, a
+0D38	4701	mov     a, rb
+0D39	4323	add     a, angle
+0D3A	40AD	mov     angle[10], a
+0D3B	4702	mov     a, rc
+0D3C	5324	adc     a, angle[1]
+0D3D	40AE	mov     angle[11], a
+0D3E	6D43	jmp     L0D43
+				L0D3F:
+0D3F	0FFF	mov     a, FFH
+0D40	43A7	addm    a, angle[4]
+0D41	0FFF	mov     a, FFH
+0D42	53A8	adcm    a, angle[5]
+				L0D43:
+0D43	4725	mov     a, angle[2]
+0D44	4227	sub     a, angle[4]
+0D45	4726	mov     a, angle[3]
+0D46	5228	sbc     a, angle[5]
+0D47	3B8A	snz     SC
+0D48	6DE7	jmp     L0DE7
+0D49	4727	mov     a, angle[4]
+0D4A	409D	mov     Array, a
+0D4B	4728	mov     a, angle[5]
+0D4C	409E	mov     del, a
+0D4D	4729	mov     a, angle[6]
+0D4E	409F	mov     del[1], a
+0D4F	472A	mov     a, angle[7]
+0D50	40A0	mov     del[2], a
+0D51	64CE	call    L0CCE
+0D52	4721	mov     a, del[3]
+0D53	4081	mov     rb, a
+0D54	4722	mov     a, del[4]
+0D55	4082	mov     rc, a
+0D56	4701	mov     a, rb
+0D57	4323	add     a, angle
+0D58	40AB	mov     angle[8], a
+0D59	4702	mov     a, rc
+0D5A	5324	adc     a, angle[1]
+0D5B	40AC	mov     angle[9], a
+0D5C	472B	mov     a, angle[8]
+0D5D	409F	mov     del[1], a
+0D5E	472C	mov     a, angle[9]
+0D5F	40A0	mov     del[2], a
+0D60	472D	mov     a, angle[10]
+0D61	409D	mov     Array, a
+0D62	472E	mov     a, angle[11]
+0D63	409E	mov     del, a
+0D64	6510	call    L0D10
+0D65	7F81	sz      rb.7
+0D66	6D3F	jmp     L0D3F
+0D67	4725	mov     a, angle[2]
+0D68	4227	sub     a, angle[4]
+0D69	4726	mov     a, angle[3]
+0D6A	5228	sbc     a, angle[5]
+0D6B	3B8A	snz     SC
+0D6C	6D96	jmp     L0D96
+0D6D	4725	mov     a, angle[2]
+0D6E	409D	mov     Array, a
+0D6F	4726	mov     a, angle[3]
+0D70	409E	mov     del, a
+0D71	4729	mov     a, angle[6]
+0D72	409F	mov     del[1], a
+0D73	472A	mov     a, angle[7]
+0D74	40A0	mov     del[2], a
+0D75	64CE	call    L0CCE
+0D76	4721	mov     a, del[3]
+0D77	4081	mov     rb, a
+0D78	4722	mov     a, del[4]
+0D79	4082	mov     rc, a
+0D7A	4723	mov     a, angle
+0D7B	4381	addm    a, rb
+0D7C	4724	mov     a, angle[1]
+0D7D	5382	adcm    a, rc
+0D7E	54A5	inc     angle[2]
+0D7F	3D0A	sz      Z
+0D80	54A6	inc     angle[3]
+0D81	4729	mov     a, angle[6]
+0D82	40A1	mov     del[3], a
+0D83	472A	mov     a, angle[7]
+0D84	40A2	mov     del[4], a
+0D85	472B	mov     a, angle[8]
+0D86	409F	mov     del[1], a
+0D87	472C	mov     a, angle[9]
+0D88	40A0	mov     del[2], a
+0D89	4701	mov     a, rb
+0D8A	409D	mov     Array, a
+0D8B	4702	mov     a, rc
+0D8C	409E	mov     del, a
+0D8D	64E1	call    L0CE1
+0D8E	472B	mov     a, angle[8]
+0D8F	40AD	mov     angle[10], a
+0D90	472C	mov     a, angle[9]
+0D91	40AE	mov     angle[11], a
+0D92	6D96	jmp     L0D96
+				L0D93:
+0D93	54A5	inc     angle[2]
+0D94	3D0A	sz      Z
+0D95	54A6	inc     angle[3]
+				L0D96:
+0D96	4725	mov     a, angle[2]
+0D97	4227	sub     a, angle[4]
+0D98	4726	mov     a, angle[3]
+0D99	5228	sbc     a, angle[5]
+0D9A	3B8A	snz     SC
+0D9B	6DE7	jmp     L0DE7
+0D9C	4725	mov     a, angle[2]
+0D9D	409D	mov     Array, a
+0D9E	4726	mov     a, angle[3]
+0D9F	409E	mov     del, a
+0DA0	4729	mov     a, angle[6]
+0DA1	409F	mov     del[1], a
+0DA2	472A	mov     a, angle[7]
+0DA3	40A0	mov     del[2], a
+0DA4	64CE	call    L0CCE
+0DA5	4721	mov     a, del[3]
+0DA6	4081	mov     rb, a
+0DA7	4722	mov     a, del[4]
+0DA8	4082	mov     rc, a
+0DA9	4701	mov     a, rb
+0DAA	4323	add     a, angle
+0DAB	40AB	mov     angle[8], a
+0DAC	4702	mov     a, rc
+0DAD	5324	adc     a, angle[1]
+0DAE	40AC	mov     angle[9], a
+0DAF	472D	mov     a, angle[10]
+0DB0	409F	mov     del[1], a
+0DB1	472E	mov     a, angle[11]
+0DB2	40A0	mov     del[2], a
+0DB3	472B	mov     a, angle[8]
+0DB4	409D	mov     Array, a
+0DB5	472C	mov     a, angle[9]
+0DB6	409E	mov     del, a
+0DB7	6510	call    L0D10
+0DB8	7F81	sz      rb.7
+0DB9	6D93	jmp     L0D93
+0DBA	4725	mov     a, angle[2]
+0DBB	4227	sub     a, angle[4]
+0DBC	4726	mov     a, angle[3]
+0DBD	5228	sbc     a, angle[5]
+0DBE	3B8A	snz     SC
+0DBF	6D43	jmp     L0D43
+0DC0	4727	mov     a, angle[4]
+0DC1	409D	mov     Array, a
+0DC2	4728	mov     a, angle[5]
+0DC3	409E	mov     del, a
+0DC4	4729	mov     a, angle[6]
+0DC5	409F	mov     del[1], a
+0DC6	472A	mov     a, angle[7]
+0DC7	40A0	mov     del[2], a
+0DC8	64CE	call    L0CCE
+0DC9	4721	mov     a, del[3]
+0DCA	4081	mov     rb, a
+0DCB	4722	mov     a, del[4]
+0DCC	4082	mov     rc, a
+0DCD	4723	mov     a, angle
+0DCE	4381	addm    a, rb
+0DCF	4724	mov     a, angle[1]
+0DD0	5382	adcm    a, rc
+0DD1	0FFF	mov     a, FFH
+0DD2	43A7	addm    a, angle[4]
+0DD3	0FFF	mov     a, FFH
+0DD4	53A8	adcm    a, angle[5]
+0DD5	4729	mov     a, angle[6]
+0DD6	40A1	mov     del[3], a
+0DD7	472A	mov     a, angle[7]
+0DD8	40A2	mov     del[4], a
+0DD9	472B	mov     a, angle[8]
+0DDA	409F	mov     del[1], a
+0DDB	472C	mov     a, angle[9]
+0DDC	40A0	mov     del[2], a
+0DDD	4701	mov     a, rb
+0DDE	409D	mov     Array, a
+0DDF	4702	mov     a, rc
+0DE0	409E	mov     del, a
+0DE1	64E1	call    L0CE1
+0DE2	472B	mov     a, angle[8]
+0DE3	40AD	mov     angle[10], a
+0DE4	472C	mov     a, angle[9]
+0DE5	40AE	mov     angle[11], a
+0DE6	6D43	jmp     L0D43
+				L0DE7:
+0DE7	4725	mov     a, angle[2]
+0DE8	4080	mov     ra, a
+0DE9	4726	mov     a, angle[3]
+0DEA	4081	mov     rb, a
+0DEB	0003	ret
+				L0DEC:
+0DEC	0FFF	mov     a, FFH
+0DED	4325	add     a, angle[2]
+0DEE	40AB	mov     angle[8], a
+0DEF	0FFF	mov     a, FFH
+0DF0	5326	adc     a, angle[3]
+0DF1	40AC	mov     angle[9], a
+0DF2	6DF7	jmp     L0DF7
+				L0DF3:
+0DF3	4733	mov     a, angle[16]
+0DF4	40A3	mov     angle, a
+0DF5	4734	mov     a, angle[17]
+0DF6	40A4	mov     angle[1], a
+				L0DF7:
+0DF7	4727	mov     a, angle[4]
+0DF8	40B1	mov     angle[14], a
+0DF9	4728	mov     a, angle[5]
+0DFA	40B2	mov     angle[15], a
+0DFB	4731	mov     a, angle[14]
+0DFC	4323	add     a, angle
+0DFD	4081	mov     rb, a
+0DFE	4732	mov     a, angle[15]
+0DFF	5324	adc     a, angle[1]
+0E00	4082	mov     rc, a
+0E01	4701	mov     a, rb
+0E02	40B3	mov     angle[16], a
+0E03	4702	mov     a, rc
+0E04	40B4	mov     angle[17], a
+0E05	4701	mov     a, rb
+0E06	40A9	mov     angle[6], a
+0E07	4702	mov     a, rc
+0E08	40AA	mov     angle[7], a
+0E09	4723	mov     a, angle
+0E0A	40AF	mov     angle[12], a
+0E0B	4724	mov     a, angle[1]
+0E0C	40B0	mov     angle[13], a
+0E0D	472B	mov     a, angle[8]
+0E0E	40AD	mov     angle[10], a
+0E0F	472C	mov     a, angle[9]
+0E10	40AE	mov     angle[11], a
+				L0E11:
+0E11	472F	mov     a, angle[12]
+0E12	409F	mov     del[1], a
+0E13	4730	mov     a, angle[13]
+0E14	40A0	mov     del[2], a
+0E15	4729	mov     a, angle[6]
+0E16	409D	mov     Array, a
+0E17	472A	mov     a, angle[7]
+0E18	409E	mov     del, a
+0E19	6510	call    L0D10
+0E1A	7B81	snz     rb.7
+0E1B	6E20	jmp     L0E20
+0E1C	4729	mov     a, angle[6]
+0E1D	40AF	mov     angle[12], a
+0E1E	472A	mov     a, angle[7]
+0E1F	40B0	mov     angle[13], a
+				L0E20:
+0E20	4731	mov     a, angle[14]
+0E21	43A9	addm    a, angle[6]
+0E22	4732	mov     a, angle[15]
+0E23	53AA	adcm    a, angle[7]
+0E24	0FFF	mov     a, FFH
+0E25	43AD	addm    a, angle[10]
+0E26	0FFF	mov     a, FFH
+0E27	53AE	adcm    a, angle[11]
+0E28	7FAE	sz      angle[11].7
+0E29	6E2E	jmp     L0E2E
+0E2A	472D	mov     a, angle[10]
+0E2B	452E	or      a, angle[11]
+0E2C	390A	snz     Z
+0E2D	6E11	jmp     L0E11
+				L0E2E:
+0E2E	4727	mov     a, angle[4]
+0E2F	40A1	mov     del[3], a
+0E30	4728	mov     a, angle[5]
+0E31	40A2	mov     del[4], a
+0E32	4723	mov     a, angle
+0E33	409F	mov     del[1], a
+0E34	4724	mov     a, angle[1]
+0E35	40A0	mov     del[2], a
+0E36	472F	mov     a, angle[12]
+0E37	409D	mov     Array, a
+0E38	4730	mov     a, angle[13]
+0E39	409E	mov     del, a
+0E3A	64E1	call    L0CE1
+0E3B	0FFF	mov     a, FFH
+0E3C	43AB	addm    a, angle[8]
+0E3D	0FFF	mov     a, FFH
+0E3E	53AC	adcm    a, angle[9]
+0E3F	7FAC	sz      angle[9].7
+0E40	6E45	jmp     L0E45
+0E41	472B	mov     a, angle[8]
+0E42	452C	or      a, angle[9]
+0E43	390A	snz     Z
+0E44	6DF3	jmp     L0DF3
+				L0E45:
+0E45	0F01	mov     a, 1H
+0E46	4080	mov     ra, a
+0E47	5F01	clr     rb
+0E48	0003	ret
+				L0E49:
+0E49	DF06	lclr    __pds2[24]
+0E4B	DF07	lclr    __pds2[25]
+0E4D	0FFF	mov     a, FFH
+0E4E	C302	ladd    a, __pds2[20]
+0E50	C088	lmov    __pds2[26], a
+0E52	0FFF	mov     a, FFH
+0E53	D303	ladc    a, __pds2[21]
+0E55	C089	lmov    __pds2[27], a
+0E57	0F07	mov     a, 7H
+0E58	C202	lsub    a, __pds2[20]
+0E5A	0F00	mov     a, 0H
+0E5B	D203	lsbc    a, __pds2[21]
+0E5D	3F8A	sz      SC
+0E5E	6FA8	jmp     L0FA8
+0E5F	C704	lmov    a, __pds2[22]
+0E61	40A7	mov     angle[4], a
+0E62	C705	lmov    a, __pds2[23]
+0E64	40A8	mov     angle[5], a
+0E65	C702	lmov    a, __pds2[20]
+0E67	40A5	mov     angle[2], a
+0E68	C703	lmov    a, __pds2[21]
+0E6A	40A6	mov     angle[3], a
+0E6B	C700	lmov    a, __pds2[18]
+0E6D	40A3	mov     angle, a
+0E6E	C701	lmov    a, __pds2[19]
+0E70	40A4	mov     angle[1], a
+0E71	65EC	call    L0DEC
+0E72	6FE0	jmp     L0FE0
+				L0E73:
+0E73	340A	clr     C
+0E74	5A03	rlca    rd
+0E75	4081	mov     rb, a
+0E76	5A04	rlca    re
+0E77	4082	mov     rc, a
+0E78	340A	clr     C
+0E79	5A81	rlc     rb
+0E7A	5A82	rlc     rc
+0E7B	4705	mov     a, rf
+0E7C	4381	addm    a, rb
+0E7D	4706	mov     a, rg
+0E7E	5382	adcm    a, rc
+0E7F	4701	mov     a, rb
+0E80	0083	mov     MP1L, a
+0E81	4702	mov     a, rc
+0E82	0084	mov     MP1H, a
+0E83	6415	call    L0C15
+0E84	C0F2	lmov    __pds2[132], a
+0E86	6414	call    L0C14
+0E87	C0F3	lmov    __pds2[133], a
+0E89	0F02	mov     a, 2H
+0E8A	4301	add     a, rb
+0E8B	0083	mov     MP1L, a
+0E8C	0F00	mov     a, 0H
+0E8D	5302	adc     a, rc
+0E8E	0084	mov     MP1H, a
+0E8F	6415	call    L0C15
+0E90	C0F0	lmov    __pds2[130], a
+0E92	6414	call    L0C14
+0E93	C0F1	lmov    __pds2[131], a
+0E95	0FFF	mov     a, FFH
+0E96	C36C	ladd    a, __pds2[126]
+0E98	C0EA	lmov    __pds2[124], a
+0E9A	0FFF	mov     a, FFH
+0E9B	D36D	ladc    a, __pds2[127]
+0E9D	C0EB	lmov    __pds2[125], a
+0E9F	0FFF	mov     a, FFH
+0EA0	4383	addm    a, rd
+0EA1	0FFF	mov     a, FFH
+0EA2	5384	adcm    a, re
+0EA3	C772	lmov    a, __pds2[132]
+0EA5	C270	lsub    a, __pds2[130]
+0EA7	C773	lmov    a, __pds2[133]
+0EA9	D271	lsbc    a, __pds2[131]
+0EAB	3B8A	snz     SC
+0EAC	6FD5	jmp     L0FD5
+0EAD	C704	lmov    a, __pds2[22]
+0EAF	40A9	mov     angle[6], a
+0EB0	C705	lmov    a, __pds2[23]
+0EB2	40AA	mov     angle[7], a
+0EB3	C770	lmov    a, __pds2[130]
+0EB5	40A7	mov     angle[4], a
+0EB6	C771	lmov    a, __pds2[131]
+0EB8	40A8	mov     angle[5], a
+0EB9	C772	lmov    a, __pds2[132]
+0EBB	40A5	mov     angle[2], a
+0EBC	C773	lmov    a, __pds2[133]
+0EBE	40A6	mov     angle[3], a
+0EBF	C700	lmov    a, __pds2[18]
+0EC1	40A3	mov     angle, a
+0EC2	C701	lmov    a, __pds2[19]
+0EC4	40A4	mov     angle[1], a
+0EC5	652B	call    L0D2B
+0EC6	4700	mov     a, ra
+0EC7	C0EE	lmov    __pds2[128], a
+0EC9	4701	mov     a, rb
+0ECA	C0EF	lmov    __pds2[129], a
+0ECC	4700	mov     a, ra
+0ECD	C272	lsub    a, __pds2[132]
+0ECF	4083	mov     rd, a
+0ED0	4701	mov     a, rb
+0ED1	D273	lsbc    a, __pds2[133]
+0ED3	4084	mov     re, a
+0ED4	0F07	mov     a, 7H
+0ED5	4203	sub     a, rd
+0ED6	0F00	mov     a, 0H
+0ED7	5204	sbc     a, re
+0ED8	3F8A	sz      SC
+0ED9	6EEC	jmp     L0EEC
+0EDA	C704	lmov    a, __pds2[22]
+0EDC	40A7	mov     angle[4], a
+0EDD	C705	lmov    a, __pds2[23]
+0EDF	40A8	mov     angle[5], a
+0EE0	4703	mov     a, rd
+0EE1	40A5	mov     angle[2], a
+0EE2	4704	mov     a, re
+0EE3	40A6	mov     angle[3], a
+0EE4	C700	lmov    a, __pds2[18]
+0EE6	40A3	mov     angle, a
+0EE7	C701	lmov    a, __pds2[19]
+0EE9	40A4	mov     angle[1], a
+0EEA	65EC	call    L0DEC
+0EEB	6F1E	jmp     L0F1E
+				L0EEC:
+0EEC	C776	lmov    a, __pds2[136]
+0EEE	C577	lor     a, __pds2[137]
+0EF0	390A	snz     Z
+0EF1	6F1E	jmp     L0F1E
+0EF2	340A	clr     C
+0EF3	DA6C	lrlca   __pds2[126]
+0EF5	4081	mov     rb, a
+0EF6	DA6D	lrlca   __pds2[127]
+0EF8	4082	mov     rc, a
+0EF9	340A	clr     C
+0EFA	5A81	rlc     rb
+0EFB	5A82	rlc     rc
+0EFC	C778	lmov    a, __pds2[138]
+0EFE	4381	addm    a, rb
+0EFF	C779	lmov    a, __pds2[139]
+0F01	5382	adcm    a, rc
+0F02	0FFF	mov     a, FFH
+0F03	C36E	ladd    a, __pds2[128]
+0F05	4083	mov     rd, a
+0F06	0FFF	mov     a, FFH
+0F07	D36F	ladc    a, __pds2[129]
+0F09	4084	mov     re, a
+0F0A	0F02	mov     a, 2H
+0F0B	4301	add     a, rb
+0F0C	0083	mov     MP1L, a
+0F0D	0F00	mov     a, 0H
+0F0E	5302	adc     a, rc
+0F0F	0084	mov     MP1H, a
+0F10	4703	mov     a, rd
+0F11	0082	mov     [02H], a
+0F12	1483	inc     MP1L
+0F13	4704	mov     a, re
+0F14	0082	mov     [02H], a
+0F15	C76C	lmov    a, __pds2[126]
+0F17	C0EA	lmov    __pds2[124], a
+0F19	C76D	lmov    a, __pds2[127]
+0F1B	C0EB	lmov    __pds2[125], a
+0F1D	6F23	jmp     L0F23
+				L0F1E:
+0F1E	0F01	mov     a, 1H
+0F1F	C0F6	lmov    __pds2[136], a
+0F21	DF77	lclr    __pds2[137]
+				L0F23:
+0F23	C770	lmov    a, __pds2[130]
+0F25	C26E	lsub    a, __pds2[128]
+0F27	4083	mov     rd, a
+0F28	C771	lmov    a, __pds2[131]
+0F2A	D26F	lsbc    a, __pds2[129]
+0F2C	4084	mov     re, a
+0F2D	0F07	mov     a, 7H
+0F2E	4203	sub     a, rd
+0F2F	0F00	mov     a, 0H
+0F30	5204	sbc     a, re
+0F31	3F8A	sz      SC
+0F32	6F62	jmp     L0F62
+0F33	C704	lmov    a, __pds2[22]
+0F35	40A7	mov     angle[4], a
+0F36	C705	lmov    a, __pds2[23]
+0F38	40A8	mov     angle[5], a
+0F39	4703	mov     a, rd
+0F3A	40A5	mov     angle[2], a
+0F3B	4704	mov     a, re
+0F3C	40A6	mov     angle[3], a
+0F3D	0F01	mov     a, 1H
+0F3E	C36E	ladd    a, __pds2[128]
+0F40	4081	mov     rb, a
+0F41	0F00	mov     a, 0H
+0F42	D36F	ladc    a, __pds2[129]
+0F44	4082	mov     rc, a
+0F45	4701	mov     a, rb
+0F46	409D	mov     Array, a
+0F47	4702	mov     a, rc
+0F48	409E	mov     del, a
+0F49	C704	lmov    a, __pds2[22]
+0F4B	409F	mov     del[1], a
+0F4C	C705	lmov    a, __pds2[23]
+0F4E	40A0	mov     del[2], a
+0F4F	64CE	call    L0CCE
+0F50	4721	mov     a, del[3]
+0F51	4081	mov     rb, a
+0F52	4722	mov     a, del[4]
+0F53	4082	mov     rc, a
+0F54	4701	mov     a, rb
+0F55	C300	ladd    a, __pds2[18]
+0F57	4083	mov     rd, a
+0F58	4702	mov     a, rc
+0F59	D301	ladc    a, __pds2[19]
+0F5B	4084	mov     re, a
+0F5C	4703	mov     a, rd
+0F5D	40A3	mov     angle, a
+0F5E	4704	mov     a, re
+0F5F	40A4	mov     angle[1], a
+0F60	65EC	call    L0DEC
+0F61	6F9C	jmp     L0F9C
+				L0F62:
+0F62	C774	lmov    a, __pds2[134]
+0F64	C575	lor     a, __pds2[135]
+0F66	390A	snz     Z
+0F67	6F9C	jmp     L0F9C
+0F68	D4EA	linc    __pds2[124]
+0F6A	3D0A	sz      Z
+0F6B	D4EB	linc    __pds2[125]
+0F6D	340A	clr     C
+0F6E	DA6A	lrlca   __pds2[124]
+0F70	4081	mov     rb, a
+0F71	DA6B	lrlca   __pds2[125]
+0F73	4082	mov     rc, a
+0F74	340A	clr     C
+0F75	5A81	rlc     rb
+0F76	5A82	rlc     rc
+0F77	C778	lmov    a, __pds2[138]
+0F79	4381	addm    a, rb
+0F7A	C779	lmov    a, __pds2[139]
+0F7C	5382	adcm    a, rc
+0F7D	0F01	mov     a, 1H
+0F7E	C36E	ladd    a, __pds2[128]
+0F80	4083	mov     rd, a
+0F81	0F00	mov     a, 0H
+0F82	D36F	ladc    a, __pds2[129]
+0F84	4084	mov     re, a
+0F85	4701	mov     a, rb
+0F86	0083	mov     MP1L, a
+0F87	4702	mov     a, rc
+0F88	0084	mov     MP1H, a
+0F89	4703	mov     a, rd
+0F8A	0082	mov     [02H], a
+0F8B	1483	inc     MP1L
+0F8C	4704	mov     a, re
+0F8D	0082	mov     [02H], a
+0F8E	0F02	mov     a, 2H
+0F8F	4301	add     a, rb
+0F90	0083	mov     MP1L, a
+0F91	0F00	mov     a, 0H
+0F92	5302	adc     a, rc
+0F93	0084	mov     MP1H, a
+0F94	C770	lmov    a, __pds2[130]
+0F96	0082	mov     [02H], a
+0F97	1483	inc     MP1L
+0F98	C771	lmov    a, __pds2[131]
+0F9A	0082	mov     [02H], a
+0F9B	6FA1	jmp     L0FA1
+				L0F9C:
+0F9C	0F01	mov     a, 1H
+0F9D	C0F4	lmov    __pds2[134], a
+0F9F	DF75	lclr    __pds2[135]
+				L0FA1:
+0FA1	C76A	lmov    a, __pds2[124]
+0FA3	4081	mov     rb, a
+0FA4	C76B	lmov    a, __pds2[125]
+0FA6	4082	mov     rc, a
+0FA7	6FBE	jmp     L0FBE
+				L0FA8:
+0FA8	DF74	lclr    __pds2[134]
+0FAA	DF75	lclr    __pds2[135]
+0FAC	DF76	lclr    __pds2[136]
+0FAE	DF77	lclr    __pds2[137]
+0FB0	5F01	clr     rb
+0FB1	5F02	clr     rc
+0FB2	0F80	mov     a, 80H
+0FB3	4083	mov     rd, a
+0FB4	0F01	mov     a, 1H
+0FB5	4084	mov     re, a
+0FB6	0F06	mov     a, 6H
+0FB7	4303	add     a, rd
+0FB8	C0F8	lmov    __pds2[138], a
+0FBA	0F00	mov     a, 0H
+0FBB	5304	adc     a, re
+0FBC	C0F9	lmov    __pds2[139], a
+				L0FBE:
+0FBE	4701	mov     a, rb
+0FBF	C0EC	lmov    __pds2[126], a
+0FC1	4702	mov     a, rc
+0FC2	C0ED	lmov    __pds2[127], a
+0FC4	5F03	clr     rd
+0FC5	5F04	clr     re
+0FC6	340A	clr     C
+0FC7	5A81	rlc     rb
+0FC8	5A82	rlc     rc
+0FC9	340A	clr     C
+0FCA	5A81	rlc     rb
+0FCB	5A82	rlc     rc
+0FCC	4701	mov     a, rb
+0FCD	C378	ladd    a, __pds2[138]
+0FCF	4085	mov     rf, a
+0FD0	4702	mov     a, rc
+0FD1	D379	ladc    a, __pds2[139]
+0FD3	4086	mov     rg, a
+0FD4	6FDD	jmp     L0FDD
+				L0FD5:
+0FD5	C76A	lmov    a, __pds2[124]
+0FD7	C0EC	lmov    __pds2[126], a
+0FD9	C76B	lmov    a, __pds2[125]
+0FDB	C0ED	lmov    __pds2[127], a
+				L0FDD:
+0FDD	FBED	lsnz    [01EDH].7
+0FDF	6E73	jmp     L0E73
+				L0FE0:
+0FE0	0003	ret
+				;308		SendX = Total;
+				;309	}
+				;file D:\Users\IIIT\Desktop\DATATRAN\startup1_l.asm
+				;1	;;--------------------------------------------------------------;;
+				;2	;;    This file is part of the Holtek C Compiler V3 package     ;;
+				;3	;;    For the initialization of static linkage variables        ;;
+				;4	;;    Copyright (C) 2017 Holtek Semiconductor Inc.              ;;
+				;5	;;    Version: 1.07 (Above IDE3000 V7.94)                       ;;
+				;6	;;    Date:    2017/03/06                                        ;;
+				;7	;;--------------------------------------------------------------;;
+				;8	
+				;9	acc equ [05h]
+				;10	tblp equ [07h]
+				;11	tblh equ [08h]
+				;12	;;tbhp equ [09h] 
+				;13	r0 equ [00h]
+				;14	mp0 equ [01h]
+				;15	r1 equ [02h]
+				;16	mp1l equ [03h]
+				;17	mp1h equ [04h]
+				;18	z equ [0ah].2
+				;19	c equ [0ah].0
+				;20	
+				;21	ifndef tbhp
+				;22	tbhp equ [09h]
+				;23	endif
+				;24	 
+				;25	extern startup_value_1:near
+				;26	
+				;27	@start .section 'code'
+				;28	begin_startup_value:
+				;29	  mov a,low (offset startup_value_1) 
+				begin_startup_value:
+				@start .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+				@dummy56 .SECTION 'CODE'
+003C	0FAE	mov     a, AEH
+				;30	  mov tblp,a
+003D	0087	mov     TBLP, a
+				;31	  mov a,high (offset startup_value_1) 
+003E	0F11	mov     a, 11H
+				;32	  mov tbhp,a
+003F	0089	mov     TBHP, a
+				;33	next_table:
+				;34	  ;CLR WDT
+				;35	  inc tblp
+				next_table:
+0040	1487	inc     TBLP
+				;36	  sz z
+0041	3D0A	sz      Z
+				;37	  inc tbhp
+0042	1489	inc     TBHP
+				;38	ifdef USE_TABRDC
+				;39	  tabrdc mp0
+				;40	else
+				;41	  tabrd mp0
+0043	1D01	tabrd   MP0
+				;42	endif
+				;43	  sz mp0
+0044	1081	sz      MP0
+				;44	  jmp read_data
+0045	2847	jmp     read_data
+				;45	  jmp startupend1
+0046	285C	jmp     startupend1
+				;46	read_data:
+				;47	  inc tblp
+				read_data:
+0047	1487	inc     TBLP
+				;48	  sz z
+0048	3D0A	sz      Z
+				;49	  inc tbhp
+0049	1489	inc     TBHP
+				;50	ifdef USE_TABRDC
+				;51	  tabrdc mp1l
+				;52	else
+				;53	  tabrd mp1l
+004A	1D03	tabrd   MP1L
+				;54	endif
+				;55	  mov a,tblh
+004B	0708	mov     a, TBLH
+				;56	  mov mp1h,a
+004C	0084	mov     MP1H, a
+				;57	next_data:
+				;58	  inc tblp
+				next_data:
+004D	1487	inc     TBLP
+				;59	  sz z
+004E	3D0A	sz      Z
+				;60	  inc tbhp
+004F	1489	inc     TBHP
+				;61	ifdef USE_TABRDC
+				;62	  tabrdc acc
+				;63	else
+				;64	  tabrd acc
+0050	1D05	tabrd   ACC
+				;65	endif
+				;66	  mov r1,a
+0051	0082	mov     [02H], a
+				;67	  sdz mp0
+0052	1781	sdz     MP0
+				;68	  jmp $+2
+0053	2855	jmp     L0055
+				;69	  jmp next_table
+0054	2840	jmp     next_table
+				;70	  inc mp1l
+				L0055:
+0055	1483	inc     MP1L
+				;71	  mov a,tblh
+0056	0708	mov     a, TBLH
+				;72	  mov r1,a
+0057	0082	mov     [02H], a
+				;73	  inc mp1l
+0058	1483	inc     MP1L
+				;74	  sdz mp0
+0059	1781	sdz     MP0
+				;75	  jmp next_data
+005A	284D	jmp     next_data
+				;76	  jmp next_table
+005B	2840	jmp     next_table
+				;77	
+				;78	;end_startup_value:
+				;79	
+				;80	startupend1:
+				;81	ifndef Disable_Bit_Initial
+				;82		MOV A,high  bitdatasec1_start
+				startupend1:
+005C	0F00	mov     a, 0H
+				;83		MOV mp1h,a
+005D	0084	mov     MP1H, a
+				;84		MOV A,offset bitdatasec1_end
+005E	0F80	mov     a, 80H
+				;85		mov mp1l,A
+005F	0083	mov     MP1L, a
+				;86		dec mp1l
+0060	1583	dec     MP1L
+				;87		clr z
+0061	350A	clr     Z
+				;88		sub a,offset bitdatasec1_start
+0062	0A80	sub     a, 80H
+				;89		sz z
+0063	3D0A	sz      Z
+				;90		jmp startupend2
+0064	2869	jmp     startupend2
+				;91	L0005:
+				;92		set r1
+				L0005:
+0065	1F82	set     [02H]
+				;93		dec mp1l
+0066	1583	dec     MP1L
+				;94		sdz  acc
+0067	1785	sdz     ACC
+				;95		jmp L0005
+0068	2865	jmp     L0005
+				;96	
+				;97	startupend2:
+				;98		MOV A,high  bitdatasec0_start
+				startupend2:
+0069	0F00	mov     a, 0H
+				;99		MOV mp1h,a
+006A	0084	mov     MP1H, a
+				;100		MOV A,offset bitdatasec0_end
+006B	0F80	mov     a, 80H
+				;101		mov mp1l,A
+006C	0083	mov     MP1L, a
+				;102		dec mp1l
+006D	1583	dec     MP1L
+				;103		clr z
+006E	350A	clr     Z
+				;104		sub a,offset bitdatasec0_start
+006F	0A80	sub     a, 80H
+				;105		sz  z
+0070	3D0A	sz      Z
+				;106		jmp startupend3
+0071	2876	jmp     startupend3
+				;107	L0006:
+				;108		clr r1
+				L0006:
+0072	1F02	clr     [02H]
+				;109		dec mp1l
+0073	1583	dec     MP1L
+				;110		sdz  acc
+0074	1785	sdz     ACC
+				;111		jmp L0006
+0075	2872	jmp     L0006
+				;112	startupend3:
+				;113	endif		
+				;114	   
+				;115	@ROMDATA_BASE .SECTION com_l 'CODE'  
+				;116	startup_value:
+				;117	;;linker range the initial value table here
+				;118	
+				;119	@BITDATASEC1 .SECTION com_l 'DATA'  
+				;120	bitdatasec1_start:
+				;121	
+				;122	@BITDATASEC1 .SECTION com_e 'DATA'  
+				;123	bitdatasec1_end:
+				;124	
+				;125	@BITDATASEC .SECTION com_l 'DATA'  
+				;126	bitdatasec0_start:
+				;127	
+				;128	@BITDATASEC .SECTION com_e 'DATA'  
+				;129	bitdatasec0_end:
+				data .SECTION 'DATA'
+				__papu DB DUP (?) ; __papu
+				__pa DB DUP (?) ; __pa
+				__pac DB DUP (?) ; __pac
+				__pc DB DUP (?) ; __pc
+				__pcc DB DUP (?) ; __pcc
+				__pepu DB DUP (?) ; __pepu
+				__pec DB DUP (?) ; __pec
+				__intc0 DB DUP (?) ; __intc0
+				__intc3 DB DUP (?) ; __intc3
+				__mfi0 DB DUP (?) ; __mfi0
+				__mfi4 DB DUP (?) ; __mfi4
+				__integ DB DUP (?) ; __integ
+				__wdtc DB DUP (?) ; __wdtc
+				__tm2c0 DB DUP (?) ; __tm2c0
+				__tm2c1 DB DUP (?) ; __tm2c1
+				__tm2al DB DUP (?) ; __tm2al
+				__tm2ah DB DUP (?) ; __tm2ah
+				__tm2rp DB DUP (?) ; __tm2rp
+				__tm0c0 DB DUP (?) ; __tm0c0
+				__tm0c1 DB DUP (?) ; __tm0c1
+				__tm0al DB DUP (?) ; __tm0al
+				__tm0ah DB DUP (?) ; __tm0ah
+				__adcr0 DB DUP (?) ; __adcr0
+				__adcr1 DB DUP (?) ; __adcr1
+				__adrl DB DUP (?) ; __adrl
+				__adrh DB DUP (?) ; __adrh
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				rd DB DUP (?)
+				re DB DUP (?)
+				rf DB DUP (?)
+				rg DB DUP (?)
+				rh DB DUP (?)
+				r104 DB DUP (?)
+				r204 DB DUP (?)
+				r138 DB DUP (?)
+				r238 DB DUP (?)
+				ra38 DB DUP (?)
+				Array DB DUP (?) ; Array
+				del DB DUP (?) ; del
+				angle DB DUP (?) ; angle
+				SortArray DB DUP (?) ; SortArray
+				HallData DB DUP (?) ; HallData
+				SendX DB 2 DUP (?) ; SendX
+				HallCount DB DUP (?) ; HallCount
+				Axcount DB DUP (?) ; Axcount
+				Hacount DB DUP (?) ; Hacount
+				XArrAvg DB 2 DUP (?) ; XArrAvg
+				i DB DUP (?) ; i
+				AD10ms DB DUP (?) ; AD10ms
+				Hall200ms DB DUP (?) ; Hall200ms
+				AxisX DB 2 DUP (?) ; AxisX
+				Index DB 2 DUP (?) ; Index
+				HallCRC DB DUP (?) ; HallCRC
+				AXCRC DB DUP (?) ; AXCRC
+				HallHead DB DUP (?) ; HallHead
+				Head DB DUP (?) ; Head
+				SendXL DB DUP (?) ; SendXL
+				SendXH DB DUP (?) ; SendXH
+				AxisXL DB DUP (?) ; AxisXL
+				AxisXH DB DUP (?) ; AxisXH
+				auto1 DB 2 DUP (?) ; auto1
+				temp DB 2 DUP (?) ; temp
+				Whell100ms DB DUP (?) ; Whell100ms
+				Whell DB DUP (?) ; Whell
+				R1sec DB DUP (?) ; R1sec
+				SEC DB DUP (?) ; SEC
+				XArr DB DUP (?) ; XArr
+				tempx DB 2 DUP (?) ; tempx
+				ADx DB 2 DUP (?) ; ADx
+				HallSUM DB DUP (?) ; HallSUM
+				AXSUM DB DUP (?) ; AXSUM
+				r304 DB DUP (?)
+				r338 DB DUP (?)
+				__ifs0 DB DUP (?) ; __ifs0
+				__tm4c0 DB DUP (?) ; __tm4c0
+				__tm4c1 DB DUP (?) ; __tm4c1
+				__tm4al DB DUP (?) ; __tm4al
+				__tm4ah DB DUP (?) ; __tm4ah
+				__pas0 DB DUP (?) ; __pas0
+				__pas3 DB DUP (?) ; __pas3
+				__pds2 DB DUP (?) ; __pds2
+				XArrSort DB DUP (?) ; XArrSort
