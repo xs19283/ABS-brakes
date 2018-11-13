@@ -46,10 +46,8 @@
             this.xAxis.Name = "xAxis";
             this.xAxis.Size = new System.Drawing.Size(589, 197);
             this.xAxis.TabIndex = 0;
-            this.xAxis.ValueMaxLeft = 3000F;
-            this.xAxis.ValueMaxRight = 3000F;
-            this.xAxis.ValueMinLeft = 1000F;
-            this.xAxis.ValueMinRight = 1000F;
+            this.xAxis.ValueMaxLeft = 400F;
+            this.xAxis.ValueMaxRight = 400F;
             // 
             // label1
             // 

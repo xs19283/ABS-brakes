@@ -24,6 +24,7 @@ namespace DataTransfor
         ushort HallData;
         int AxisData;
         int count;
+        Boolean ctrl = true;
 
         private Boolean receiving;
         private SerialPort comport;
@@ -36,8 +37,8 @@ namespace DataTransfor
         {
             StreamWriter sw = new StreamWriter(@"D:\Users\IIIT\Desktop\Data.txt", true);
             DateTime saveNow = DateTime.Now;
-            //sw.WriteLine(saveNow.ToString("hh:mm:ss.ff") + " 三軸數值 : " + AxisData + " 輪速感測器 : " + HallData);
-            sw.WriteLine(AxisData);
+            sw.WriteLine(saveNow.ToString("hh:mm:ss.ff") + " 三軸數值 : " + AxisData + " 輪速感測器 : " + HallData);
+            //sw.WriteLine(AxisData);
             sw.Close();
         }
 
@@ -110,7 +111,13 @@ namespace DataTransfor
         }
         private void DoReceive()
         {
-            Boolean ctrl = true;
+            if (count == 300)
+            {
+                count = 0;
+                ctrl = true;
+                comport.DiscardInBuffer();
+                comport.BaseStream.Flush();
+            }
             while (ctrl)
             {
                 int b = comport.ReadByte();
@@ -135,19 +142,18 @@ namespace DataTransfor
                 {
                     AxisData = (ushort)(buffer[1] << 8);
                     AxisData += buffer[2];
-                    count = buffer[3];
                 }
 
                 if (buffer[0] == 85 && buffer[0] + buffer[1] == buffer[4])
                 {
-                    HallData = (ushort)(buffer[1] << 8);
-                    HallData += buffer[2];
+                    HallData = buffer[1];
                 }
                 WriteTimeData();
                 ThreadText();
                 //Thread.Sleep(16);
 
             }
+            count++;
         }
         private void HallText_TextChanged(object sender, EventArgs e)
         {
