@@ -35,8 +35,6 @@
             this.startObservation = new HslCommunication.Controls.UserButton();
             this.HallText = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
-            this.label3 = new System.Windows.Forms.Label();
-            this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // xAxis
@@ -66,7 +64,7 @@
             this.startObservation.CustomerInformation = "";
             this.startObservation.EnableColor = System.Drawing.Color.FromArgb(((int)(((byte)(190)))), ((int)(((byte)(190)))), ((int)(((byte)(190)))));
             this.startObservation.Font = new System.Drawing.Font("微软雅黑", 12F);
-            this.startObservation.Location = new System.Drawing.Point(619, 691);
+            this.startObservation.Location = new System.Drawing.Point(348, 514);
             this.startObservation.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.startObservation.Name = "startObservation";
             this.startObservation.Size = new System.Drawing.Size(78, 25);
@@ -97,34 +95,12 @@
             this.label2.TabIndex = 5;
             this.label2.Text = "輪速感測器";
             // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("新細明體", 20F);
-            this.label3.Location = new System.Drawing.Point(167, 514);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(74, 27);
-            this.label3.TabIndex = 10;
-            this.label3.Text = "label3";
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("新細明體", 20F);
-            this.label4.Location = new System.Drawing.Point(307, 514);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(74, 27);
-            this.label4.TabIndex = 11;
-            this.label4.Text = "label4";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.ClientSize = new System.Drawing.Size(1350, 729);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.label3);
+            this.ClientSize = new System.Drawing.Size(1248, 722);
             this.Controls.Add(this.HallText);
             this.Controls.Add(this.startObservation);
             this.Controls.Add(this.label2);
@@ -147,8 +123,6 @@
         private HslCommunication.Controls.UserButton startObservation;
         private System.Windows.Forms.TextBox HallText;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label4;
     }
 }
 
