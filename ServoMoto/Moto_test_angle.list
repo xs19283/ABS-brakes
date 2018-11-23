@@ -1,0 +1,432 @@
+				;file D:\Users\IIIT\Desktop\Moto_test_angle\Moto_test_angle.c
+				;1	#include "HT66F70A.h"
+				;2	typedef	unsigned char	u8;
+				;3	typedef	char			s8;
+				;4	typedef	unsigned short	u16;
+				;5	typedef	short			s16;
+				;6	typedef	unsigned long	u32;
+				;7	typedef	long			s32;
+				;8	
+				;9	#define led _pb6
+				;10	#define ledc _pbc6
+				;11	#define led2 _pb7
+				;12	#define ledc2 _pbc7
+				;13	
+				;14	#define  SW_P0			_pe0
+				;15	#define	 SW_P1 		    _pe1
+				;16	#define  SW_P0C			_pec0
+				;17	#define	 SW_P1C			_pec1
+				;18	#define  SW_P0PU		_pepu0
+				;19	#define	 SW_P1PU		_pepu1
+				;20	#define  SW_P3		_pe3
+				;21	#define  SW_P3C		_pec3
+				;22	#define  SW_P3PU		_pepu3
+				;23	
+				;24	s16 angle,temp,Index,auto1;
+				;25	
+				;26	void Moto_Set();	  //				;27	void Moto_C(u8 angle);//				;28	
+				;29	void Delay100us(u16);
+				;30	void delay_ms(unsigned char);
+				;31	void main()
+				;32	{
+				@code .SECTION 'CODE'
+				include HT66F70A.inc
+0000	1F0B	clr     BP
+0001	2802	jmp     _main_startup1
+				@start .SECTION 'CODE'
+				_main_startup1:
+				@start .SECTION 'CODE'
+0002	0F00	mov     a, 0H
+0003	008B	mov     BP, a
+0004	288A	jmp     _main
+0005	0000	nop
+0006	0000	nop
+0007	0000	nop
+0008	0000	nop
+				L0009:
+0009	0000	nop
+				L000A:
+000A	0000	nop
+000B	1785	sdz     ACC
+000C	280A	jmp     L000A
+				L000D:
+000D	0000	nop
+000E	1785	sdz     ACC
+000F	280D	jmp     L000D
+0010	5785	sdz     re[1]
+0011	280D	jmp     L000D
+0012	0003	ret
+				;33		auto1=0;
+				_main:
+				_main:
+008A	5F12	clr     auto1[0]
+008B	5F13	clr     auto1[1]
+				;34		_wdtc=0xaf; 
+008C	0FAF	mov     a, AFH
+008D	00BE	mov     WDTC, a
+				;35		ledc=0; ledc2=0;
+008E	3717	clr     PBC6
+008F	3797	clr     PBC7
+				;36		Moto_Set();
+0090	207C	call    _Moto_Set
+				;37		Moto_C(79);
+0091	0F4F	mov     a, 4FH
+0092	2037	call    _Moto_C
+				;38		while(1)
+				;39		{
+				;40			
+				;41			temp=Index*20+1000;
+				_L15:
+0093	470C	mov     a, Index[0]
+0094	4085	mov     re[1], a
+0095	470D	mov     a, Index[1]
+0096	4086	mov     del, a
+0097	0F14	mov     a, 14H
+0098	4087	mov     del[1], a
+0099	5F08	clr     del[2]
+009A	2024	call    L0024
+009B	4709	mov     a, del[3]
+009C	4083	mov     rd, a
+009D	470A	mov     a, del[4]
+009E	4084	mov     re, a
+009F	0FE8	mov     a, E8H
+00A0	4383	addm    a, rd
+00A1	0F03	mov     a, 3H
+00A2	5384	adcm    a, re
+				;42			_tm2al=temp%256;
+00A3	4703	mov     a, rd
+00A4	4081	mov     rb, a
+00A5	4704	mov     a, re
+00A6	4082	mov     rc, a
+00A7	0FFF	mov     a, FFH
+00A8	4681	andm    a, rb
+00A9	0F80	mov     a, 80H
+00AA	4682	andm    a, rc
+00AB	7B82	snz     rc.7
+00AC	28B8	jmp     _L16
+00AD	0FFF	mov     a, FFH
+00AE	4381	addm    a, rb
+00AF	0FFF	mov     a, FFH
+00B0	5382	adcm    a, rc
+00B1	0FFF	mov     a, FFH
+00B2	4582	orm     a, rc
+00B3	0F00	mov     a, 0H
+00B4	4581	orm     a, rb
+00B5	5481	inc     rb
+00B6	3D0A	sz      Z
+00B7	5482	inc     rc
+				_L16:
+00B8	4701	mov     a, rb
+00B9	00D5	mov     TM2AL, a
+				;43			_tm2ah=temp/256;
+00BA	4703	mov     a, rd
+00BB	4081	mov     rb, a
+00BC	4704	mov     a, re
+00BD	4082	mov     rc, a
+00BE	7B84	snz     re.7
+00BF	28C6	jmp     _L17
+00C0	0FFF	mov     a, FFH
+00C1	4303	add     a, rd
+00C2	4081	mov     rb, a
+00C3	0F00	mov     a, 0H
+00C4	5304	adc     a, re
+00C5	4082	mov     rc, a
+				_L17:
+00C6	4702	mov     a, rc
+00C7	00D6	mov     TM2AH, a
+				;44			temp>>=1;
+00C8	4703	mov     a, rd
+00C9	4080	mov     ra, a
+00CA	4704	mov     a, re
+00CB	4081	mov     rb, a
+00CC	5A01	rlca    rb
+00CD	5B81	rrc     rb
+00CE	5B80	rrc     ra
+00CF	4700	mov     a, ra
+00D0	408E	mov     temp[0], a
+00D1	4701	mov     a, rb
+00D2	408F	mov     temp[1], a
+				;45			delay_ms(50);						//00D3	0F32	mov     a, 32H
+00D4	2013	call    _delay_ms
+				;46			while(1)
+				;47			{	
+				;48				if(!SW_P0)
+				_L22:
+00D5	3C22	sz      PE0
+00D6	28F1	jmp     _L18
+				;49				{	
+				;50					//_t2on=1;
+				;51					led=0;
+00D7	3716	clr     PB6
+				;52					angle=Index;
+00D8	470C	mov     a, Index[0]
+00D9	4081	mov     rb, a
+00DA	470D	mov     a, Index[1]
+00DB	4082	mov     rc, a
+00DC	4701	mov     a, rb
+00DD	4090	mov     angle[0], a
+00DE	4702	mov     a, rc
+00DF	4091	mov     angle[1], a
+				;53					//Index=101;
+				;54					if(++Index>=200) Index=200;		//00E0	5481	inc     rb
+00E1	3D0A	sz      Z
+00E2	5482	inc     rc
+00E3	4701	mov     a, rb
+00E4	408C	mov     Index[0], a
+00E5	4702	mov     a, rc
+00E6	408D	mov     Index[1], a
+00E7	0FC7	mov     a, C7H
+00E8	4201	sub     a, rb
+00E9	0F00	mov     a, 0H
+00EA	5202	sbc     a, rc
+00EB	3B8A	snz     SC
+00EC	2893	jmp     _L15
+00ED	0FC8	mov     a, C8H
+00EE	408C	mov     Index[0], a
+00EF	5F0D	clr     Index[1]
+00F0	2893	jmp     _L15
+				;55					break;   	
+				;56				}
+				;57				if(!SW_P1) 						//				_L18:
+00F1	3CA2	sz      PE1
+00F2	28D5	jmp     _L22
+				;58				{	
+				;59					//_t2on=1;
+				;60					led=1;
+00F3	3316	set     PB6
+				;61					angle=Index;
+00F4	470C	mov     a, Index[0]
+00F5	4081	mov     rb, a
+00F6	470D	mov     a, Index[1]
+00F7	4082	mov     rc, a
+00F8	4701	mov     a, rb
+00F9	4090	mov     angle[0], a
+00FA	4702	mov     a, rc
+00FB	4091	mov     angle[1], a
+				;62					//Index=135;
+				;63					if(--Index<=0) Index=0;
+00FC	0FFF	mov     a, FFH
+00FD	4381	addm    a, rb
+00FE	0FFF	mov     a, FFH
+00FF	5382	adcm    a, rc
+0100	4701	mov     a, rb
+0101	408C	mov     Index[0], a
+0102	4702	mov     a, rc
+0103	408D	mov     Index[1], a
+0104	7F82	sz      rc.7
+0105	290A	jmp     _LI1
+0106	4701	mov     a, rb
+0107	4502	or      a, rc
+0108	390A	snz     Z
+0109	2893	jmp     _L15
+				_LI1:
+010A	5F0C	clr     Index[0]
+010B	5F0D	clr     Index[1]
+010C	2893	jmp     _L15
+010D	290D	jmp     $
+				;64					break;   	
+				;65				}
+				;66				/*if(!SW_P3)
+				;67				{
+				;68					_t2on=0;
+				;69					break;
+				;70				}*/
+				;71			}
+				;72			
+				;73			/*if(auto1==0){
+				;74				Moto_C(107);
+				;75				delay_ms(70);
+				;76				Moto_C(135);
+				;77				delay_ms(70);
+				;78			}
+				;79			if(!SW_P0){
+				;80				auto1=1;
+				;81				Moto_C(107);
+				;82			}
+				;83			if(!SW_P1){
+				;84				auto1=0;
+				;85			}*/
+				;86		}
+				;87	}
+				;88	
+				;89	void Moto_Set(){			//				;90		SW_P0C=1; SW_P0PU=1;	//				_Moto_Set:
+				_Moto_Set:
+007C	3023	set     PEC0
+007D	3021	set     PEPU0
+				;91		SW_P1C=1; SW_P1PU=1;
+007E	30A3	set     PEC1
+007F	30A1	set     PEPU1
+				;92		_pds2=0x01;				//0080	0F01	mov     a, 1H
+0081	80EE	lmov    PDS2, a
+				;93		_tm2c0=0b00000000;
+0083	1F51	clr     TM2C0
+				;94		_tm2c1=0b10101000;
+0084	0FA8	mov     a, A8H
+0085	00D2	mov     TM2C1, a
+				;95		_tm2rp=160;
+0086	0FA0	mov     a, A0H
+0087	00D7	mov     TM2RP, a
+				;96		_t2on=1;
+0088	31D1	set     T2ON
+0089	0003	ret
+				;97	}
+				;98	
+				;99	void Moto_C(u8 angle){
+				_Moto_C:
+				_Moto_C:
+0037	408B	mov     angle[0], a
+				;100			temp=Index*20+1000;
+0038	470C	mov     a, Index[0]
+0039	4085	mov     re[1], a
+003A	470D	mov     a, Index[1]
+003B	4086	mov     del, a
+003C	0F14	mov     a, 14H
+003D	4087	mov     del[1], a
+003E	5F08	clr     del[2]
+003F	2024	call    L0024
+0040	4709	mov     a, del[3]
+0041	4083	mov     rd, a
+0042	470A	mov     a, del[4]
+0043	4084	mov     re, a
+0044	0FE8	mov     a, E8H
+0045	4383	addm    a, rd
+0046	0F03	mov     a, 3H
+0047	5384	adcm    a, re
+				;101			_tm2al=temp%256;
+0048	4703	mov     a, rd
+0049	4081	mov     rb, a
+004A	4704	mov     a, re
+004B	4082	mov     rc, a
+004C	0FFF	mov     a, FFH
+004D	4681	andm    a, rb
+004E	0F80	mov     a, 80H
+004F	4682	andm    a, rc
+0050	7B82	snz     rc.7
+0051	285D	jmp     L005D
+0052	0FFF	mov     a, FFH
+0053	4381	addm    a, rb
+0054	0FFF	mov     a, FFH
+0055	5382	adcm    a, rc
+0056	0FFF	mov     a, FFH
+0057	4582	orm     a, rc
+0058	0F00	mov     a, 0H
+0059	4581	orm     a, rb
+005A	5481	inc     rb
+005B	3D0A	sz      Z
+005C	5482	inc     rc
+				L005D:
+005D	4701	mov     a, rb
+005E	00D5	mov     TM2AL, a
+				;102			_tm2ah=temp/256;
+005F	4703	mov     a, rd
+0060	4081	mov     rb, a
+0061	4704	mov     a, re
+0062	4082	mov     rc, a
+0063	7B84	snz     re.7
+0064	286B	jmp     L006B
+0065	0FFF	mov     a, FFH
+0066	4303	add     a, rd
+0067	4081	mov     rb, a
+0068	0F00	mov     a, 0H
+0069	5304	adc     a, re
+006A	4082	mov     rc, a
+				L006B:
+006B	4702	mov     a, rc
+006C	00D6	mov     TM2AH, a
+				;103			temp>>=1;
+006D	4703	mov     a, rd
+006E	4080	mov     ra, a
+006F	4704	mov     a, re
+0070	4081	mov     rb, a
+0071	5A01	rlca    rb
+0072	5B81	rrc     rb
+0073	5B80	rrc     ra
+0074	4700	mov     a, ra
+0075	408E	mov     temp[0], a
+0076	4701	mov     a, rb
+0077	408F	mov     temp[1], a
+				;104			Index=angle;
+0078	470B	mov     a, angle[0]
+0079	408C	mov     Index[0], a
+007A	5F0D	clr     Index[1]
+007B	0003	ret
+				;105	}
+				;106	
+				;107	void Delay100us(u16 del){
+				;108		u16 a,k;;
+				;109		for(a=0;a<del;a++)
+				;110			for(k=0;k<=25;k++)
+				;111				GCC_NOP();
+				;112	}
+				;113	
+				;114	void delay_ms(unsigned char del){	
+				_delay_ms:
+				_delay_ms:
+0013	4086	mov     del[0], a
+				;115		unsigned char a;
+				;116		for(a=0;a<del;a++) 
+0014	5F00	clr     ra
+0015	281F	jmp     L001F
+001E	5480	inc     ra
+				L001F:
+001F	4700	mov     a, ra
+0020	4206	sub     a, del[0]
+0021	390A	snz     Z
+0022	2816	jmp     L0016
+0023	0003	ret
+				L0024:
+0024	5F09	clr     del[3]
+0025	5F0A	clr     del[4]
+				L0026:
+0026	7807	snz     del[1].0
+0027	282C	jmp     L002C
+0028	4705	mov     a, re[1]
+0029	4389	addm    a, del[3]
+002A	4706	mov     a, del[0]
+002B	538A	adcm    a, del[4]
+				L002C:
+002C	340A	clr     C
+002D	5A85	rlc     re[1]
+002E	5A86	rlc     del[0]
+002F	340A	clr     C
+0030	5B88	rrc     del[2]
+0031	5B87	rrc     del[1]
+0032	4707	mov     a, del[1]
+0033	4508	or      a, del[2]
+0034	390A	snz     Z
+0035	2826	jmp     L0026
+0036	0003	ret
+				;117			GCC_DELAY(2000);		//				L0016:
+0016	0F01	mov     a, 1H
+0017	4085	mov     re[1], a
+0018	0FF1	mov     a, F1H
+0019	340B	clr     BP0
+001A	348B	clr     BP1
+001B	2009	call    L0009
+001C	348B	clr     BP1
+001D	340B	clr     BP0
+				;118	}
+				data .SECTION 'DATA'
+				__pb DB DUP (?) ; __pb
+				__pbc DB DUP (?) ; __pbc
+				__pepu DB DUP (?) ; __pepu
+				__pe DB DUP (?) ; __pe
+				__pec DB DUP (?) ; __pec
+				__wdtc DB DUP (?) ; __wdtc
+				__tm2c0 DB DUP (?) ; __tm2c0
+				__tm2c1 DB DUP (?) ; __tm2c1
+				__tm2al DB DUP (?) ; __tm2al
+				__tm2ah DB DUP (?) ; __tm2ah
+				__tm2rp DB DUP (?) ; __tm2rp
+				ra DB DUP (?)
+				rb DB DUP (?)
+				rc DB DUP (?)
+				rd DB DUP (?)
+				re DB DUP (?)
+				del DB DUP (?) ; del
+				angle DB DUP (?) ; angle
+				Index DB 2 DUP (?) ; Index
+				temp DB 2 DUP (?) ; temp
+				angle DB 2 DUP (?) ; angle
+				auto1 DB 2 DUP (?) ; auto1
+				__pds2 DB DUP (?) ; __pds2
